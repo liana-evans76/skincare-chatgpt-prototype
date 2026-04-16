@@ -39,6 +39,7 @@ const mirrorAttributionSvg = `
 const PRODUCTS = {
   luxury: [
     {
+      brand: "YSL Loveshine",
       title: "YSL Loveshine Lip Oil Stick",
       shadeLabel: "203 — Blushed Mallow",
       swatch: "#c98b93",
@@ -54,8 +55,13 @@ const PRODUCTS = {
       priceNow: "$42",
       rating: 4.6,
       ratingCount: "2.4k",
+      description:
+        "A lip oil fused with caring oils for a dewy shine and a soft wash of color. The balm-like stick glides on smoothly and helps lips feel moisturized with a lightweight, non-sticky finish.",
+      ingredients:
+        "Diisostearyl Malate, Trimethylolpropane Triisostearate, Polybutene, Bis-Diglyceryl Polyacyladipate-2, Hydrogenated Polyisobutene, VP/Eicosene Copolymer, Synthetic Wax, Ceresin, Ethylhexyl Palmitate, Silica Dimethyl Silylate, Pentaerythrityl Tetra-di-t-butyl Hydroxyhydrocinnamate, Tocopherol, Phenoxyethanol.\n[+/- May contain: CI 77891, CI 15850, CI 77491, CI 77499].",
     },
     {
+      brand: "Dior",
       title: "Dior Addict Lip Maximizer",
       shadeLabel: "012 — Rosewood",
       swatch: "#c58b86",
@@ -71,8 +77,13 @@ const PRODUCTS = {
       priceNow: "$38",
       rating: 4.4,
       ratingCount: "1.8k",
+      description:
+        "A plumping gloss with a minty fresh feel and mirror shine. Hyaluronic spheres help lips look smoother and fuller while keeping the finish comfortable for everyday wear.",
+      ingredients:
+        "Polybutene, Trimethylolpropane Triisostearate, Diisostearyl Malate, Ethylhexyl Palmitate, Menthoxypropanediol, Palmitoyl Tripeptide-1, Sodium Hyaluronate, Tocopherol, Pentaerythrityl Tetra-di-t-butyl Hydroxyhydrocinnamate, Parfum (Fragrance), Phenoxyethanol.\n[+/- May contain: CI 77891, CI 45410, CI 15850, CI 77491].",
     },
     {
+      brand: "Charlotte Tilbury",
       title: "Charlotte Tilbury Pillow Talk",
       shadeLabel: "Medium — Pink Nude",
       swatch: "#c2877e",
@@ -88,10 +99,15 @@ const PRODUCTS = {
       priceNow: "$34",
       rating: 4.8,
       ratingCount: "5.1k",
+      description:
+        "The iconic Pillow Talk pink-nude in a satin finish that flatters a wide range of skin tones. Buildable pigment makes it easy to go from a soft wash to a bolder lip in seconds.",
+      ingredients:
+        "Octyldodecanol, Polybutene, Pentaerythrityl Tetraisostearate, Synthetic Wax, Bis-Diglyceryl Polyacyladipate-2, Cera Microcristallina, Ethylhexyl Palmitate, Diisostearyl Malate, Tocopheryl Acetate, Pentaerythrityl Tetra-di-t-butyl Hydroxyhydrocinnamate, Parfum (Fragrance), Phenoxyethanol.\n[+/- May contain: CI 77891, CI 15850, CI 77491, CI 77499].",
     },
   ],
   budget: [
     {
+      brand: "Maybelline",
       title: "Maybelline Lifter Gloss",
       shadeLabel: "008 — Stone",
       swatch: "#c99592",
@@ -107,8 +123,13 @@ const PRODUCTS = {
       priceNow: "$9",
       rating: 4.2,
       ratingCount: "12k",
+      description:
+        "Hyaluronic acid-infused gloss with high shine and a cushioned feel. Stone is a flattering neutral pink that pairs well with everyday makeup.",
+      ingredients:
+        "Polybutene, Hydrogenated Polyisobutene, Ethylhexyl Palmitate, Calcium Sodium Borosilicate, Calcium Aluminum Borosilicate, Silica, Pentaerythrityl Tetraisostearate, Tocopheryl Acetate, Sodium Hyaluronate, Pentaerythrityl Tetra-di-t-butyl Hydroxyhydrocinnamate, Phenoxyethanol.\n[+/- May contain: CI 77891, CI 77491, CI 15850, CI 45410].",
     },
     {
+      brand: "NYX Professional Makeup",
       title: "NYX Butter Gloss",
       shadeLabel: "Praline — Pinky Nude",
       swatch: "#c0807a",
@@ -124,8 +145,13 @@ const PRODUCTS = {
       priceNow: "$6",
       rating: 4.1,
       ratingCount: "8.3k",
+      description:
+        "A buttery, non-sticky gloss with sheer to medium coverage. Praline is a cult-favorite pinky nude that works across undertones for an easy MLBB look.",
+      ingredients:
+        "Mineral Oil, Polybutene, Diisostearyl Malate, Beeswax, Silica Dimethyl Silylate, Microcrystalline Wax, Pentaerythrityl Tetraisostearate, Tocopheryl Acetate, Phenoxyethanol, Parfum (Fragrance).\n[+/- May contain: CI 77891, CI 77491, CI 15850, CI 45410].",
     },
     {
+      brand: "e.l.f.",
       title: "e.l.f. Glow Reviver Lip Oil",
       shadeLabel: "Rose Quartz",
       swatch: "#d28a96",
@@ -141,6 +167,10 @@ const PRODUCTS = {
       priceNow: "$8",
       rating: 4.3,
       ratingCount: "3.6k",
+      description:
+        "A vegan lip oil that adds a glassy wash of color with nourishing oils. Rose Quartz gives a soft rose tint that reads fresh on bare lips or over liner.",
+      ingredients:
+        "Hydrogenated Polyisobutene, Ethylhexyl Palmitate, Polybutene, Ricinus Communis Seed Oil, Simmondsia Chinensis Seed Oil, Tocopheryl Acetate, Pentaerythrityl Tetra-di-t-butyl Hydroxyhydrocinnamate, Phenoxyethanol.\n[+/- May contain: CI 77891, CI 15850, CI 45410].",
     },
   ],
 };
@@ -156,6 +186,32 @@ const el = {
   input: /** @type {HTMLTextAreaElement} */ (document.getElementById("composerInput")),
   composerField: /** @type {HTMLElement} */ (document.getElementById("composerField")),
   sendBtn: /** @type {HTMLButtonElement} */ (document.getElementById("composerSend")),
+  productDetail: /** @type {HTMLElement} */ (document.getElementById("productDetail")),
+  productDetailClose: /** @type {HTMLButtonElement} */ (document.getElementById("productDetailClose")),
+  productDetailScroll: /** @type {HTMLElement} */ (document.getElementById("productDetailScroll")),
+  productDetailSlides: /** @type {HTMLElement} */ (document.getElementById("productDetailSlides")),
+  productDetailDots: /** @type {HTMLElement} */ (document.getElementById("productDetailDots")),
+  productDetailBrand: /** @type {HTMLElement} */ (document.getElementById("productDetailBrand")),
+  productDetailTitle: /** @type {HTMLElement} */ (document.getElementById("productDetailTitle")),
+  productDetailBadges: /** @type {HTMLElement} */ (document.getElementById("productDetailBadges")),
+  productDetailTags: /** @type {HTMLElement} */ (document.getElementById("productDetailTags")),
+  productDetailShadeDot: /** @type {HTMLElement} */ (document.getElementById("productDetailShadeDot")),
+  productDetailShadeLabel: /** @type {HTMLElement} */ (document.getElementById("productDetailShadeLabel")),
+  productDetailMeta: /** @type {HTMLElement} */ (document.getElementById("productDetailMeta")),
+  productDetailDescription: /** @type {HTMLElement} */ (document.getElementById("productDetailDescription")),
+  productDetailIngredientsBody: /** @type {HTMLElement} */ (document.getElementById("productDetailIngredientsBody")),
+  vtoFlow: /** @type {HTMLElement} */ (document.getElementById("vtoFlow")),
+  vtoTermsPanel: /** @type {HTMLElement} */ (document.getElementById("vtoTermsPanel")),
+  vtoStep2Panel: /** @type {HTMLElement} */ (document.getElementById("vtoStep2Panel")),
+  vtoTermsCheckbox: /** @type {HTMLInputElement} */ (document.getElementById("vtoTermsCheckbox")),
+  vtoConsentBtn: /** @type {HTMLButtonElement} */ (document.getElementById("vtoConsentBtn")),
+  vtoDeclineBtn: /** @type {HTMLButtonElement} */ (document.getElementById("vtoDeclineBtn")),
+  vtoTermsClose: /** @type {HTMLButtonElement} */ (document.getElementById("vtoTermsClose")),
+  vtoStep2Close: /** @type {HTMLButtonElement} */ (document.getElementById("vtoStep2Close")),
+  vtoStep2Done: /** @type {HTMLButtonElement} */ (document.getElementById("vtoStep2Done")),
+  vtoToast: /** @type {HTMLElement} */ (document.getElementById("vtoToast")),
+  vtoToastDismiss: /** @type {HTMLButtonElement} */ (document.getElementById("vtoToastDismiss")),
+  vtoBannerLearn: /** @type {HTMLButtonElement} */ (document.getElementById("vtoBannerLearn")),
 };
 
 /** @type {View} */
@@ -313,45 +369,54 @@ function tagsHTML(tags) {
     .join("");
 }
 
-function productCardHTML(p) {
+function productCardHTML(p, tier, index) {
   return `
-    <article class="product-card" aria-label="${escapeAttr(p.title)}">
-      <div class="product-card__header">
-        <span class="badge badge--filled">${escapeHtml(p.badgePrimary)}</span>
-        <span class="badge badge--outline">${escapeHtml(p.badgeSecondary)}</span>
-      </div>
-      <div class="product-card__media">
-        <div class="product-card__swatch" style="background:${p.swatchBg};"></div>
-        <div class="product-card__tubes" aria-hidden="true">
-          <div class="tube tube--silver"></div>
-          <div class="tube tube--gold"></div>
+    <article class="product-card" aria-label="${escapeAttr(p.title)}" data-tier="${tier}" data-product-index="${index}">
+      <div class="product-card__header" aria-hidden="true"></div>
+      <div class="product-card__content">
+        <div class="product-card__media">
+          <div class="product-card__swatch" style="background:${p.swatchBg};"></div>
+          <div class="product-card__tubes" aria-hidden="true">
+            <div class="tube tube--silver"></div>
+            <div class="tube tube--gold"></div>
+          </div>
         </div>
-      </div>
-      <h3 class="product-card__title">${escapeHtml(p.title)}</h3>
-      <div class="product-card__tags">${tagsHTML(p.tags)}</div>
-      <div class="product-card__meta">
-        <div class="price-row">
-          <span class="price-row__was">${escapeHtml(p.priceWas)}</span>
-          <span>${escapeHtml(p.priceNow)}</span>
+        <h3 class="product-card__title">${escapeHtml(p.title)}</h3>
+        <div class="product-card__tag-row">
+          <span class="tag-chip product-card__shade-tag">
+            <span class="tag-chip__dot" style="background:${escapeAttr(p.swatch)};"></span>
+            ${escapeHtml(p.shadeLabel)}
+          </span>
         </div>
-        ${ratingRowHTML(p)}
       </div>
       <div class="product-card__footer">
-        <button type="button" class="btn-primary-lg">
-          ${mirrorSvg}
-          Virtual Try-On
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 17L17 7M17 7H9M17 7V15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+        <button type="button" class="btn-primary-lg product-card__btn-primary vto-open">
+          <span class="product-card__btn-icon" aria-hidden="true">${mirrorSvg}</span>
+          <span>Virtual Try-On</span>
+          <span class="product-card__btn-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M7 17L17 7M17 7H9M17 7V15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
         </button>
-        <button type="button" class="btn-secondary-lg">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 2.5C5.5 2.5 3.5 4.2 3.5 6.25V9.75C3.5 11.8 5.5 13.5 8 13.5C10.5 13.5 12.5 11.8 12.5 9.75V6.25C12.5 4.2 10.5 2.5 8 2.5Z" stroke="currentColor" stroke-width="1.3" />
-          </svg>
-          Learn more
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 2.5C5.5 2.5 3.5 4.2 3.5 6.25V9.75C3.5 11.8 5.5 13.5 8 13.5C10.5 13.5 12.5 11.8 12.5 9.75V6.25C12.5 4.2 10.5 2.5 8 2.5Z" stroke="currentColor" stroke-width="1.3" />
-          </svg>
+        <button type="button" class="btn-secondary-lg product-card__learn product-card__btn-secondary" aria-label="Learn more about ${escapeAttr(p.title)}">
+          <span class="product-card__btn-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2.5C5.5 2.5 3.5 4.2 3.5 6.25V9.75C3.5 11.8 5.5 13.5 8 13.5C10.5 13.5 12.5 11.8 12.5 9.75V6.25C12.5 4.2 10.5 2.5 8 2.5Z" stroke="currentColor" stroke-width="1.3" />
+            </svg>
+          </span>
+          <span>Learn more</span>
+          <span class="product-card__btn-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M9.5 2.5H13.5V6.5M13.5 2.5L6.5 9.5M3.5 6.5V13.5H12.5V6.5"
+                stroke="currentColor"
+                stroke-width="1.35"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
         </button>
       </div>
     </article>`;
@@ -400,7 +465,7 @@ function convActionsHTML() {
 function buildCarousel(label) {
   const tier = tierKeyFromLabel(label);
   const list = PRODUCTS[tier];
-  const cards = list.map((p) => productCardHTML(p)).join("");
+  const cards = list.map((p, i) => productCardHTML(p, tier, i)).join("");
 
   return `
     <div class="vto-attribution">
@@ -474,6 +539,8 @@ async function sendUserMessage(text, promptMeta) {
   const trimmed = text.trim();
   if (!trimmed) return;
   if (flow === "busy") return;
+  closeVtoFlow();
+  closeProductDetail();
   flow = "busy";
 
   removeQuickReplies();
@@ -537,5 +604,189 @@ function initComposer() {
   });
 }
 
+const PRODUCT_DETAIL_SLIDES = 3;
+
+function productDetailSlideHTML(p) {
+  return `
+    <div class="product-detail__slide">
+      <div class="product-detail__slide-swatch" style="background:${p.swatchBg};"></div>
+      <div class="product-detail__slide-tubes" aria-hidden="true">
+        <div class="tube tube--silver"></div>
+        <div class="tube tube--gold"></div>
+      </div>
+    </div>`;
+}
+
+function productDetailBadgesHTML(p) {
+  return `
+    <span class="badge badge--filled">${escapeHtml(p.badgePrimary)}</span>
+    <span class="badge badge--outline">${escapeHtml(p.badgeSecondary)}</span>`;
+}
+
+function syncProductDetailDots() {
+  const track = el.productDetailSlides;
+  const dotsRoot = el.productDetailDots;
+  if (!track || dotsRoot.childElementCount === 0) return;
+  const w = track.clientWidth || 1;
+  const idx = Math.min(PRODUCT_DETAIL_SLIDES - 1, Math.max(0, Math.round(track.scrollLeft / w)));
+  let i = 0;
+  for (const dot of dotsRoot.querySelectorAll("span")) {
+    dot.classList.toggle("is-active", i === idx);
+    i += 1;
+  }
+}
+
+function closeProductDetail() {
+  if (el.productDetail.hidden) return;
+  el.productDetail.hidden = true;
+  el.productDetail.setAttribute("aria-hidden", "true");
+}
+
+/** @param {'luxury'|'budget'} tier @param {number} index */
+function openProductDetail(tier, index) {
+  const list = PRODUCTS[tier];
+  if (!list || !list[index]) return;
+  const p = list[index];
+
+  el.productDetailBrand.textContent = p.brand;
+  el.productDetailTitle.textContent = p.title;
+  el.productDetailBadges.innerHTML = productDetailBadgesHTML(p);
+  el.productDetailTags.innerHTML = tagsHTML(p.tags);
+  el.productDetailShadeDot.style.background = p.swatch;
+  el.productDetailShadeLabel.textContent = p.shadeLabel;
+  el.productDetailMeta.innerHTML = `
+    <div class="price-row">
+      <span class="price-row__was">${escapeHtml(p.priceWas)}</span>
+      <span>${escapeHtml(p.priceNow)}</span>
+    </div>
+    ${ratingRowHTML(p)}`;
+  el.productDetailDescription.textContent = p.description;
+  el.productDetailIngredientsBody.textContent = p.ingredients;
+
+  const slidesHtml = Array.from({ length: PRODUCT_DETAIL_SLIDES }, () => productDetailSlideHTML(p)).join("");
+  el.productDetailSlides.innerHTML = slidesHtml;
+  const dotParts = [];
+  for (let i = 0; i < PRODUCT_DETAIL_SLIDES; i += 1) {
+    dotParts.push(`<span${i === 0 ? ' class="is-active"' : ""}></span>`);
+  }
+  el.productDetailDots.innerHTML = dotParts.join("");
+
+  el.productDetail.hidden = false;
+  el.productDetail.setAttribute("aria-hidden", "false");
+  el.productDetailScroll.scrollTop = 0;
+  el.productDetailSlides.scrollLeft = 0;
+  requestAnimationFrame(() => {
+    syncProductDetailDots();
+    el.productDetailClose.focus();
+  });
+}
+
+function initProductDetail() {
+  el.chatView.addEventListener("click", (e) => {
+    const btn = e.target.closest(".product-card__learn");
+    if (!btn) return;
+    const card = btn.closest(".product-card");
+    if (!card) return;
+    const tier = card.getAttribute("data-tier");
+    const idx = Number(card.getAttribute("data-product-index"));
+    if (tier !== "luxury" && tier !== "budget") return;
+    if (!Number.isFinite(idx)) return;
+    openProductDetail(tier, idx);
+  });
+
+  el.productDetailClose.addEventListener("click", () => closeProductDetail());
+
+  el.productDetailSlides.addEventListener("scroll", () => syncProductDetailDots(), { passive: true });
+
+  window.addEventListener("resize", () => {
+    if (!el.productDetail.hidden) syncProductDetailDots();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !el.productDetail.hidden) {
+      e.preventDefault();
+      closeProductDetail();
+    }
+  });
+}
+
+function syncVtoConsentButton() {
+  const ok = el.vtoTermsCheckbox.checked;
+  el.vtoConsentBtn.disabled = !ok;
+}
+
+function resetVtoFlowPanels() {
+  el.vtoTermsPanel.hidden = false;
+  el.vtoStep2Panel.hidden = true;
+  el.vtoTermsCheckbox.checked = false;
+  syncVtoConsentButton();
+}
+
+function closeVtoFlow() {
+  if (el.vtoFlow.hidden) return;
+  el.vtoFlow.hidden = true;
+  el.vtoFlow.setAttribute("aria-hidden", "true");
+  resetVtoFlowPanels();
+  el.vtoToast.classList.remove("vto-toast--dismissed");
+}
+
+function openVtoTermsFlow() {
+  closeProductDetail();
+  resetVtoFlowPanels();
+  el.vtoToast.classList.remove("vto-toast--dismissed");
+  el.vtoFlow.hidden = false;
+  el.vtoFlow.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => {
+    el.vtoTermsClose.focus();
+  });
+}
+
+function goVtoStepAfterConsent() {
+  el.vtoTermsPanel.hidden = true;
+  el.vtoStep2Panel.hidden = false;
+  requestAnimationFrame(() => el.vtoStep2Done.focus());
+}
+
+function initVtoFlow() {
+  el.chatView.addEventListener("click", (e) => {
+    const btn = e.target.closest(".vto-open");
+    if (!btn) return;
+    openVtoTermsFlow();
+  });
+
+  el.productDetail.addEventListener("click", (e) => {
+    if (e.target.closest(".vto-open")) openVtoTermsFlow();
+  });
+
+  el.vtoTermsCheckbox.addEventListener("change", () => syncVtoConsentButton());
+
+  el.vtoConsentBtn.addEventListener("click", () => {
+    if (!el.vtoTermsCheckbox.checked) return;
+    goVtoStepAfterConsent();
+  });
+
+  el.vtoDeclineBtn.addEventListener("click", () => closeVtoFlow());
+  el.vtoTermsClose.addEventListener("click", () => closeVtoFlow());
+  el.vtoStep2Close.addEventListener("click", () => closeVtoFlow());
+  el.vtoStep2Done.addEventListener("click", () => closeVtoFlow());
+
+  el.vtoToastDismiss.addEventListener("click", () => {
+    el.vtoToast.classList.add("vto-toast--dismissed");
+  });
+
+  el.vtoBannerLearn.addEventListener("click", (e) => {
+    e.preventDefault();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !el.vtoFlow.hidden) {
+      e.preventDefault();
+      closeVtoFlow();
+    }
+  });
+}
+
 renderPrompts();
 initComposer();
+initProductDetail();
+initVtoFlow();

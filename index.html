@@ -81,21 +81,206 @@
           </div>
         </nav>
 
-        <main class="main" id="mainScroll">
-          <section class="entry" id="entryView" aria-label="Suggested prompts">
-            <div class="entry__hero">
-              <p class="entry__kicker">New chat</p>
-              <h1 class="entry__headline">What are you looking for today?</h1>
+        <div class="shell-main">
+          <main class="main" id="mainScroll">
+            <section class="entry" id="entryView" aria-label="Suggested prompts">
+              <div class="entry__hero">
+                <p class="entry__kicker">New chat</p>
+                <h1 class="entry__headline">What are you looking for today?</h1>
+              </div>
+              <div class="entry__prompts" id="promptList"></div>
+            </section>
+
+            <section class="chat" id="chatView" hidden aria-live="polite"></section>
+          </main>
+
+          <div
+            id="productDetail"
+            class="product-detail"
+            hidden
+            aria-hidden="true"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="productDetailTitle"
+          >
+            <button type="button" class="product-detail__close" id="productDetailClose" aria-label="Close product details">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </button>
+            <div class="product-detail__frame">
+              <div class="product-detail__scroll" id="productDetailScroll">
+                <div class="product-detail__carousel-wrap">
+                  <div class="product-detail__slides" id="productDetailSlides" aria-label="Product images"></div>
+                  <div class="product-detail__dots" id="productDetailDots" role="tablist" aria-label="Slides"></div>
+                </div>
+                <div class="product-detail__info">
+                  <p class="product-detail__brand" id="productDetailBrand"></p>
+                  <h2 class="product-detail__title" id="productDetailTitle"></h2>
+                  <div class="product-detail__badges" id="productDetailBadges"></div>
+                  <div class="product-detail__tags" id="productDetailTags"></div>
+                  <p class="product-detail__shade">
+                    <span class="product-detail__shade-dot" id="productDetailShadeDot"></span>
+                    <span id="productDetailShadeLabel"></span>
+                  </p>
+                  <div class="product-detail__meta" id="productDetailMeta"></div>
+                  <p class="product-detail__description" id="productDetailDescription"></p>
+                </div>
+                <section class="product-detail__ingredients" aria-labelledby="productDetailIngredientsHeading">
+                  <h3 class="product-detail__ingredients-title" id="productDetailIngredientsHeading">Ingredients</h3>
+                  <p class="product-detail__ingredients-body" id="productDetailIngredientsBody"></p>
+                </section>
+              </div>
+              <footer class="product-detail__footer">
+                <button type="button" class="btn-primary-lg vto-open" id="productDetailVto">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M8 2.5C5.5 2.5 3.5 4.2 3.5 6.25V9.75C3.5 11.8 5.5 13.5 8 13.5C10.5 13.5 12.5 11.8 12.5 9.75V6.25C12.5 4.2 10.5 2.5 8 2.5Z" stroke="currentColor" stroke-width="1.3" />
+                    <path d="M6.25 7.25H9.75" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                  </svg>
+                  Virtual Try-On
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M7 17L17 7M17 7H9M17 7V15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+                <button type="button" class="btn-outline-lg" id="productDetailBuy">Where to Buy</button>
+              </footer>
             </div>
-            <div class="entry__prompts" id="promptList"></div>
-          </section>
+          </div>
 
-          <section class="chat" id="chatView" hidden aria-live="polite"></section>
-        </main>
+          <div
+            id="vtoFlow"
+            class="vto-flow"
+            hidden
+            aria-hidden="true"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="vtoTermsHeading"
+          >
+            <div id="vtoTermsPanel" class="vto-flow__panel vto-flow__panel--terms">
+              <div class="vto-terms__header">
+                <button type="button" class="vto-terms__close" id="vtoTermsClose" aria-label="Close">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  </svg>
+                </button>
+                <div class="vto-terms__brand">
+                  <div class="vto-terms__brand-name">makeup.com</div>
+                  <div class="vto-terms__brand-tag">BY L'OREAL</div>
+                </div>
+              </div>
 
-        <footer class="composer">
+              <div class="vto-flow__scroll vto-flow__scroll--terms">
+                <h1 class="vto-terms__title" id="vtoTermsHeading">Our privacy promise to you</h1>
+                <div class="vto-terms__legal">
+                  <p>
+                    By using Virtual Try-On, I agree to
+                    <a href="#" class="vto-terms__link">L'Oréal's Terms of Use</a>
+                    (which includes an arbitration provision), and I have read and acknowledge
+                    <a href="#" class="vto-terms__link">L'Oréal's Privacy Policy</a>
+                    and Notice of Financial Incentives. Information is shared or made available to L'Oréal's parent
+                    (L'Oréal S.A.) for analytics, market research, and to improve products and services.
+                  </p>
+                </div>
+                <p class="vto-terms__tick-hint">Please tick the box to agree to the terms of use.</p>
+                <label class="vto-terms__agree-row">
+                  <input type="checkbox" id="vtoTermsCheckbox" class="vto-terms__checkbox" />
+                  <span class="vto-terms__agree-label">I agree</span>
+                </label>
+              </div>
+
+              <footer class="vto-terms__footer">
+                <button type="button" class="vto-terms__consent-btn" id="vtoConsentBtn" disabled>I consent</button>
+              </footer>
+            </div>
+
+            <div id="vtoModePanel" class="vto-flow__panel vto-flow__panel--mode" hidden>
+              <header class="vto-mode__navbar">
+                <button type="button" class="vto-mode__nav-btn" id="vtoModeClose" aria-label="Close">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  </svg>
+                </button>
+                <span class="vto-mode__brand" id="vtoModeBrand">Sparkle</span>
+                <button type="button" class="vto-mode__nav-btn" aria-label="History">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4" />
+                    <path d="M12 7v6l4 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                  </svg>
+                </button>
+              </header>
+              <div class="vto-flow__scroll vto-flow__scroll--mode">
+                <h2 class="vto-mode__title" id="vtoModeHeading">Select try-on mode</h2>
+                <p class="vto-mode__subtitle">
+                  Test products in real-time or use a selfie to see your products rendered on your image.
+                </p>
+                <div class="vto-mode__info" role="note">
+                  <span class="vto-mode__info-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                  <span class="vto-mode__info-text">We don't save your image.</span>
+                  <button type="button" class="vto-mode__info-link" id="vtoModePrivacyLearn">Learn more</button>
+                </div>
+              </div>
+              <footer class="vto-mode__footer">
+                <button type="button" class="vto-mode__btn vto-mode__btn--primary" id="vtoModeLive">Try-on live mode</button>
+                <button type="button" class="vto-mode__btn vto-mode__btn--secondary" id="vtoModeSelfie">Use a selfie</button>
+              </footer>
+            </div>
+
+            <div id="vtoLiveStubPanel" class="vto-flow__panel vto-flow__panel--stub" hidden>
+              <header class="vto-mode__navbar">
+                <button type="button" class="vto-mode__nav-btn" id="vtoLiveStubBack" aria-label="Back">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+                <span class="vto-mode__brand">Sparkle</span>
+                <span class="vto-mode__nav-spacer" aria-hidden="true"></span>
+              </header>
+              <div class="vto-flow__scroll vto-flow__scroll--stub">
+                <h2 class="vto-mode__title">Live mode try-on</h2>
+                <p class="vto-mode__stub-copy">Live camera preview and try-on will continue here.</p>
+              </div>
+              <footer class="vto-mode__footer vto-mode__footer--single">
+                <button type="button" class="vto-mode__btn vto-mode__btn--primary" id="vtoLiveStubDone">Back to mode</button>
+              </footer>
+            </div>
+
+            <div id="vtoSelfieStubPanel" class="vto-flow__panel vto-flow__panel--stub" hidden>
+              <header class="vto-mode__navbar">
+                <button type="button" class="vto-mode__nav-btn" id="vtoSelfieStubBack" aria-label="Back">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+                <span class="vto-mode__brand">Sparkle</span>
+                <span class="vto-mode__nav-spacer" aria-hidden="true"></span>
+              </header>
+              <div class="vto-flow__scroll vto-flow__scroll--stub">
+                <h2 class="vto-mode__title">Try-on selfie</h2>
+                <p class="vto-mode__stub-copy">Choose how to add your photo — full capture flow is next.</p>
+                <div class="vto-selfie__choices">
+                  <button type="button" class="vto-mode__btn vto-mode__btn--primary" id="vtoSelfieTake">Take my selfie</button>
+                  <button type="button" class="vto-mode__btn vto-mode__btn--secondary" id="vtoSelfieUpload">Upload a selfie</button>
+                </div>
+              </div>
+              <footer class="vto-mode__footer vto-mode__footer--single">
+                <button type="button" class="vto-mode__btn vto-mode__btn--secondary" id="vtoSelfieStubDone">Back to mode</button>
+              </footer>
+            </div>
+          </div>
+        </div>
+
+        <footer class="composer" id="composerRoot">
           <div class="composer__row">
-            <button type="button" class="composer__plus" aria-label="Add">
+            <button type="button" class="composer__back" id="composerVtoBack" hidden aria-label="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <button type="button" class="composer__plus" id="composerPlus" aria-label="Add">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                 <path d="M9 3.5V14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                 <path d="M3.5 9H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
@@ -108,6 +293,8 @@
                 rows="1"
                 class="composer__input"
                 placeholder="Ask anything"
+                data-placeholder-default="Ask anything"
+                data-placeholder-vto="Ask Makeup Try-On..."
                 autocomplete="off"
                 autocorrect="on"
                 spellcheck="true"
@@ -149,6 +336,7 @@
           </div>
           <div class="home-indicator" aria-hidden="true"></div>
         </footer>
+
       </div>
     </div>
 
