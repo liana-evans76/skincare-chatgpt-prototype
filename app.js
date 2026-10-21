@@ -1908,7 +1908,9 @@ const el = {
   lrpMatchIntro: /** @type {HTMLElement | null} */ (document.getElementById("lrpMatchIntro")),
   lrpMatchReasons: /** @type {HTMLElement | null} */ (document.getElementById("lrpMatchReasons")),
   lrpMatchHowBtn: /** @type {HTMLButtonElement | null} */ (document.getElementById("lrpMatchHowBtn")),
-  lrpMatchHowBody: /** @type {HTMLElement | null} */ (document.getElementById("lrpMatchHowBody")),
+  lrpMatchHowDrawer: /** @type {HTMLElement | null} */ (document.getElementById("lrpMatchHowDrawer")),
+  lrpMatchHowScrim: /** @type {HTMLButtonElement | null} */ (document.getElementById("lrpMatchHowScrim")),
+  lrpMatchHowClose: /** @type {HTMLButtonElement | null} */ (document.getElementById("lrpMatchHowClose")),
   lrpResultIngredients: /** @type {HTMLElement | null} */ (document.getElementById("lrpResultIngredients")),
   lrpMoreHeading: /** @type {HTMLElement | null} */ (document.getElementById("lrpMoreHeading")),
   lrpMoreIntro: /** @type {HTMLElement | null} */ (document.getElementById("lrpMoreIntro")),
@@ -2850,11 +2852,42 @@ function formatConcernList(labels) {
   return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
 }
 
+function isSkinProductAsk(text) {
+  if (!text) return false;
+  if (detectNamedMatchBrand(text)) return true;
+  if (detectLrpProductType(text)) return true;
+  if (isLrpProductAsk(text)) return true;
+  return (
+    /\b(find me|recommend|suggest|looking for|need a|what should i (?:use|buy|get)|show me|best)\b/i.test(text) &&
+    /\b(product|cream|lotion|treatment|formula|moisturi|cleanser|serum|spf|sunscreen)\b/i.test(text)
+  );
+}
+
+function skinDiagProductAskLabel(text) {
+  const typeId = detectLrpProductType(text);
+  /** @type {Record<string, string>} */
+  const labels = {
+    moisturizer: "moisturizer",
+    cleanser: "cleanser",
+    serum: "serum",
+    spf: "SPF",
+    eye: "eye cream",
+    acne: "acne treatment",
+    body: "body care",
+    mist: "toner or mist",
+    redness: "redness treatment",
+  };
+  if (typeId && labels[typeId]) return labels[typeId];
+  if (isSkinProductAsk(text)) return "product";
+  return null;
+}
+
 function shouldOfferSkinDiagnostic(text, promptMeta) {
   if (promptMeta?.skinAnalyzeIntent || promptMeta?.skincareIntent) return true;
   if (isSkinAnalyzeIntent(text, promptMeta)) return true;
   if (isSkinRoutineAsk(text)) return true;
   if (isSkinConcernHelpAsk(text)) return true;
+  if (isSkinProductAsk(text)) return true;
   return false;
 }
 
@@ -2867,6 +2900,8 @@ function skinDiagOfferCopy(text) {
   const listed = formatConcernList(labels);
   const routine = isSkinRoutineAsk(text);
   const analyze = isSkinAnalyzeIntent(text);
+  const productLabel = skinDiagProductAskLabel(text);
+  const namedBrand = detectNamedMatchBrand(text);
   let lead;
   if (labels.includes("stinging from SPF")) {
     lead = `If SPF stings, that's often a sensitivity or barrier thing rather than just picking a lighter texture. A short scan helps us see whether sting is the main issue or part of a broader irritation pattern.`;
@@ -2878,6 +2913,10 @@ function skinDiagOfferCopy(text) {
     lead = `For ${listed}, a lot of people jump straight to a product. A short analysis is usually more useful first, so we're not treating the wrong cause.`;
   } else if (routine) {
     lead = `If you want a routine that actually fits, the useful first step is seeing what your skin is doing right now — not a generic 10-step list.`;
+  } else if (productLabel) {
+    lead = `I can help you find a ${productLabel} — I just don't start from a product list in this chat. A short analysis first means the pick is based on what your skin is actually showing, not a generic bestseller.`;
+  } else if (namedBrand) {
+    lead = `${matchBrandName(namedBrand)} has formulas that can work well — I just don't start from a brand shelf here. A short scan first tells us whether that kind of formula is even what your skin needs.`;
   } else if (analyze) {
     lead = `I can run a guided skin analysis for you — a structured look at what your skin is showing right now, then a routine built around those results. It is always informational, not a substitute for seeing a dermatologist in person.`;
   } else {
@@ -2917,7 +2956,7 @@ function buildSkinAnalyzeCardBlock(opts = {}) {
 
 function skinCareGenericReplyHtml() {
   return `<div class="assistant-text">
-    <p style="margin:0">I can help you think through routines, ingredients, and how to layer products safely. Tell me your skin type, concerns, and what you are already using (cleanser, treatment, moisturizer, SPF), and I will keep suggestions practical and easy to follow.</p>
+    <p style="margin:0">Happy to help — in this chat I start from your skin rather than guessing at products. Tap <strong>Start Diagnostic</strong> when you want a short analysis, and we can build from there.</p>
   </div>`;
 }
 
@@ -5250,9 +5289,6 @@ async function sendUserMessage(text, promptMeta) {
   if (!displayText) return;
   if (flow === "busy") return;
   const namedBrand = detectNamedMatchBrand(displayText);
-  if ((namedBrand || hasMatchMention(displayText)) && chatMode === "skin_diag") {
-    switchChatModeIfNeeded("makeup");
-  }
   const trimmed = stripMatchMentions(displayText) || displayText;
 
   const vtoWhereBuyProduct =
@@ -5517,22 +5553,13 @@ async function sendUserMessage(text, promptMeta) {
     flow = "busy";
     updateComposerTextState();
 
-    if (shouldOfferSkinDiagnostic(trimmed, promptMeta)) {
-      await assistantThink();
-      if (myGen !== chatGenerationEpoch) return;
-      appendAssistantBlock(buildSkinAnalyzeCardBlock(skinDiagOfferCopy(trimmed)));
-      flow = "idle";
-      updateComposerTextState();
-      return;
-    }
-
     const altIntent = parseSkinDiagAlternativesIntent(trimmed);
     if (altIntent) {
       const products = skinDiagAlternativeProductsForStep(altIntent.step, altIntent.product?.id);
       await assistantThink();
       if (myGen !== chatGenerationEpoch) return;
       if (products.length) appendAssistantBlock(buildSkinDiagAlternativesBlock(altIntent.step, products, altIntent.product));
-      else appendAssistantBlock(skinCareGenericReplyHtml());
+      else appendAssistantBlock(buildSkinAnalyzeCardBlock(skinDiagOfferCopy(displayText)));
       flow = "idle";
       updateComposerTextState();
       return;
@@ -5540,7 +5567,7 @@ async function sendUserMessage(text, promptMeta) {
 
     await assistantThink();
     if (myGen !== chatGenerationEpoch) return;
-    appendAssistantBlock(skinCareGenericReplyHtml());
+    appendAssistantBlock(buildSkinAnalyzeCardBlock(skinDiagOfferCopy(displayText)));
     flow = "idle";
     updateComposerTextState();
     return;
@@ -8040,9 +8067,17 @@ function skinDiagRoutineProductCardHTML(p, opts = {}) {
     : "<span></span>";
   const brandHtml = brand ? `<p class="lrp-card__brand">${escapeHtml(brand)}</p>` : "";
   const stepId = opts.stepId || p.step || "";
-  const alts = opts.stepId && opts.showAlts !== false
-    ? `<button type="button" class="lrp-card__learn" data-skin-diag-alts="${escapeAttr(opts.stepId)}" data-skin-diag-alts-for="${escapeAttr(p.id)}" aria-label="See alternative products for ${escapeAttr(p.title)}">Alternative Products</button>`
-    : "";
+  const shopPrimary = opts.showAlts === false;
+  const primary = shopPrimary
+    ? `<button type="button" class="lrp-card__cta lrp-card__cta--shop" data-skin-diag-shop="${escapeAttr(p.id)}" aria-label="Where to buy ${escapeAttr(p.title)}">Where to buy</button>`
+    : `<button type="button" class="lrp-card__cta lrp-card__cta--shop" data-skin-diag-learn="${escapeAttr(p.id)}" data-skin-diag-step="${escapeAttr(stepId)}" aria-label="Learn more about ${escapeAttr(p.title)}">
+        Learn More
+      </button>`;
+  const secondary = shopPrimary
+    ? `<button type="button" class="lrp-card__learn" data-skin-diag-learn="${escapeAttr(p.id)}" data-skin-diag-step="${escapeAttr(stepId)}" aria-label="Learn more about ${escapeAttr(p.title)}">Learn More</button>`
+    : opts.stepId && opts.showAlts !== false
+      ? `<button type="button" class="lrp-card__learn" data-skin-diag-alts="${escapeAttr(opts.stepId)}" data-skin-diag-alts-for="${escapeAttr(p.id)}" aria-label="See alternative products for ${escapeAttr(p.title)}">Alternative Products</button>`
+      : "";
   return `<article class="product-card lrp-card skin-diag-product-card" role="listitem" data-skin-diag-product="${escapeAttr(p.id)}">
     <div class="lrp-card__header">${badge}${matchTag}</div>
     <div class="lrp-card__content">
@@ -8052,10 +8087,8 @@ function skinDiagRoutineProductCardHTML(p, opts = {}) {
       <div class="lrp-card__tags">${tags}</div>
     </div>
     <div class="lrp-card__footer">
-      <button type="button" class="lrp-card__cta lrp-card__cta--shop" data-skin-diag-learn="${escapeAttr(p.id)}" data-skin-diag-step="${escapeAttr(stepId)}" aria-label="Learn more about ${escapeAttr(p.title)}">
-        Learn More
-      </button>
-      ${alts}
+      ${primary}
+      ${secondary}
     </div>
   </article>`;
 }
@@ -8128,6 +8161,14 @@ function openSkinDiagProductDetails(productId, stepId) {
 
 /** @param {Event} e */
 function handleSkinDiagProductCardClick(e) {
+  const shop = e.target instanceof Element ? e.target.closest("[data-skin-diag-shop]") : null;
+  if (shop) {
+    e.preventDefault();
+    const productId = shop.getAttribute("data-skin-diag-shop");
+    const found = productId ? findSkinDiagProductById(productId) : null;
+    if (found) void startMatchShopFlow(skinDiagProductAsMatchRecord(found));
+    return true;
+  }
   const learn = e.target instanceof Element ? e.target.closest("[data-skin-diag-learn]") : null;
   if (learn) {
     e.preventDefault();
@@ -9821,13 +9862,9 @@ function lrpMoreCardHTML(p) {
     <h3 class="lrp-more-card__name">${escapeHtml(p.title)}</h3>
     <div class="lrp-card__tags">${tags}${overflow}</div>
     <p class="lrp-more-card__price">${was}${escapeHtml(p.priceNow || "")}</p>
-    <a class="lrp-more-card__cart" href="${escapeAttr(p.shopUrl || "#")}" target="_blank" rel="noopener noreferrer">
-      Add to cart
-      <svg class="lucide lucide--16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-        <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-      </svg>
-    </a>
+    <button type="button" class="lrp-more-card__learn" data-lrp-more-learn aria-label="Learn more about ${escapeAttr(p.title)}">
+      Learn More
+    </button>
   </article>`;
 }
 
@@ -9883,8 +9920,7 @@ function populateLrpResults(p) {
       .map((r) => `<li><span class="lrp-match-card__check">${check}</span><span>${escapeHtml(r)}</span></li>`)
       .join("");
   }
-  if (el.lrpMatchHowBtn) el.lrpMatchHowBtn.setAttribute("aria-expanded", "false");
-  if (el.lrpMatchHowBody) el.lrpMatchHowBody.hidden = true;
+  closeLrpMatchHowDrawer();
   if (el.lrpResultIngredients) el.lrpResultIngredients.textContent = p.ingredients;
   const moreHeading = mismatch ? "We've found a better match" : fromSkinDiag ? "Alternative products" : "More products";
   if (el.lrpMoreHeading) el.lrpMoreHeading.textContent = moreHeading;
@@ -10078,6 +10114,30 @@ function lrpResultsMoreProducts(p, mismatch) {
   return lrpCarouselProducts(p, mismatch);
 }
 
+/** @param {string | null | undefined} id */
+function resolveLrpMoreCardProduct(id) {
+  if (!id) return null;
+  const fromMatch = findLrpProduct(id);
+  if (fromMatch) return fromMatch;
+  const found = findSkinDiagProductById(id);
+  return found ? skinDiagProductAsMatchRecord(found) : null;
+}
+
+/** @param {string | null | undefined} id */
+function openLrpMoreCardProduct(id) {
+  let product = resolveLrpMoreCardProduct(id);
+  if (!product) return;
+  const stepId = lrpActiveProduct?.skinDiagStepId || "";
+  if (stepId) {
+    product = { ...product, skinDiagStepId: stepId, step: product.step || stepId };
+  }
+  lrpActiveProduct = product;
+  populateLrpLanding(product);
+  const onDetails = Boolean(el.lrpDetailsPanel && !el.lrpDetailsPanel.hidden);
+  if (onDetails && !shouldShowMatchUiFromLearnMore(product)) showLrpDetails(product);
+  else showLrpResults(product, { skipMatchUnlock: Boolean(product.skinDiagStepId) });
+}
+
 /** @param {LrpProduct} p */
 function populateLrpDetails(p) {
   if (el.lrpDetailsMedia) el.lrpDetailsMedia.innerHTML = lrpProductMediaHTML(p);
@@ -10194,10 +10254,34 @@ async function startMatchInPersonFlow(p) {
   updateComposerTextState();
 }
 
+function isLrpMatchHowDrawerOpen() {
+  return Boolean(el.lrpMatchHowDrawer && !el.lrpMatchHowDrawer.hidden);
+}
+
+function closeLrpMatchHowDrawer() {
+  const drawer = el.lrpMatchHowDrawer;
+  if (!drawer) return;
+  drawer.classList.remove("is-open");
+  drawer.hidden = true;
+  drawer.setAttribute("aria-hidden", "true");
+  el.lrpMatchHowBtn?.setAttribute("aria-expanded", "false");
+}
+
+function openLrpMatchHowDrawer() {
+  const drawer = el.lrpMatchHowDrawer;
+  if (!drawer) return;
+  drawer.hidden = false;
+  drawer.setAttribute("aria-hidden", "false");
+  el.lrpMatchHowBtn?.setAttribute("aria-expanded", "true");
+  requestAnimationFrame(() => drawer.classList.add("is-open"));
+  requestAnimationFrame(() => el.lrpMatchHowClose?.focus());
+}
+
 function closeLrpFlow() {
   const flow = el.lrpFlow;
   if (!flow || flow.hidden) return;
   if (!flow.classList.contains("is-open") && lrpFlowHideTimer != null) return;
+  closeLrpMatchHowDrawer();
   stopLrpScan();
   flow.classList.remove("is-open", "lrp-flow--over-vto", "lrp-flow--skincare");
   lrpScanForSkinDiag = false;
@@ -10242,10 +10326,16 @@ function initLrpFlow() {
       const host = readMore.closest("p");
       if (host) host.textContent = host.dataset.full || host.textContent;
     }
-    if (e.target.closest("#lrpMatchHowBtn") && el.lrpMatchHowBody && el.lrpMatchHowBtn) {
-      const open = el.lrpMatchHowBody.hidden;
-      el.lrpMatchHowBody.hidden = !open;
-      el.lrpMatchHowBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (e.target.closest("#lrpMatchHowBtn")) {
+      e.preventDefault();
+      openLrpMatchHowDrawer();
+      return;
+    }
+    if (e.target.closest("#lrpMatchHowClose") || e.target.closest("#lrpMatchHowScrim")) {
+      e.preventDefault();
+      closeLrpMatchHowDrawer();
+      el.lrpMatchHowBtn?.focus();
+      return;
     }
     if (e.target.closest("#lrpDetailsMatchBtn") && lrpActiveProduct) {
       continueLrpMatchFlow(lrpActiveProduct);
@@ -10256,25 +10346,16 @@ function initLrpFlow() {
       void startMatchShopFlow(lrpActiveProduct);
       return;
     }
+    const moreLearn = e.target.closest(".lrp-more-card__learn, [data-lrp-more-learn]");
+    if (moreLearn) {
+      e.preventDefault();
+      const moreCard = moreLearn.closest(".lrp-more-card");
+      openLrpMoreCardProduct(moreCard?.getAttribute("data-lrp-product"));
+      return;
+    }
     const moreCard = e.target.closest(".lrp-more-card");
-    if (moreCard && !e.target.closest(".lrp-more-card__cart")) {
-      const id = moreCard.getAttribute("data-lrp-product");
-      const stepId = lrpActiveProduct?.skinDiagStepId || "";
-      let product = id ? findLrpProduct(id) : null;
-      if (!product && id) {
-        const found = findSkinDiagProductById(id);
-        if (found) product = skinDiagProductAsMatchRecord(found);
-      }
-      if (product) {
-        if (stepId) {
-          product = { ...product, skinDiagStepId: stepId, step: product.step || stepId };
-        }
-        lrpActiveProduct = product;
-        populateLrpLanding(product);
-        const onDetails = Boolean(el.lrpDetailsPanel && !el.lrpDetailsPanel.hidden);
-        if (onDetails && !shouldShowMatchUiFromLearnMore(product)) showLrpDetails(product);
-        else showLrpResults(product, { skipMatchUnlock: Boolean(product.skinDiagStepId) });
-      }
+    if (moreCard && !e.target.closest(".lrp-more-card__learn")) {
+      openLrpMoreCardProduct(moreCard.getAttribute("data-lrp-product"));
     }
   });
 
@@ -10300,6 +10381,11 @@ function initLrpFlow() {
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !el.lrpFlow || el.lrpFlow.hidden) return;
     if (isComposerFocusTarget(e.target)) return;
+    if (isLrpMatchHowDrawerOpen()) {
+      closeLrpMatchHowDrawer();
+      el.lrpMatchHowBtn?.focus();
+      return;
+    }
     closeLrpFlow();
   });
 }

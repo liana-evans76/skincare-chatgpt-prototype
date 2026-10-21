@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#FFFFFF" />
     <title>ChatGPT — Makeup Try-On (Prototype)</title>
-    <link rel="stylesheet" href="styles.css?v=routine-pdp-12" />
+    <link rel="stylesheet" href="styles.css?v=routine-pdp-17" />
   </head>
   <body>
     <div class="device" aria-label="ChatGPT prototype">
@@ -1250,10 +1250,7 @@
                   </div>
                   <p class="lrp-match-card__intro" id="lrpMatchIntro"></p>
                   <ul class="lrp-match-card__list" id="lrpMatchReasons"></ul>
-                  <button type="button" class="lrp-match-card__how" id="lrpMatchHowBtn" aria-expanded="false">How did we calculate this?</button>
-                  <p class="lrp-match-card__how-body" id="lrpMatchHowBody" hidden>
-                    We compared the skin traits from your selfie scan — hydration, barrier, oil, tone and sensitivity markers — with this formula’s key ingredients and finish. The percentage is a prototype estimate, not a medical diagnosis.
-                  </p>
+                  <button type="button" class="lrp-match-card__how" id="lrpMatchHowBtn" aria-expanded="false" aria-controls="lrpMatchHowDrawer">How did we calculate this?</button>
                 </section>
                 <div class="lrp-results__disclaimer" id="lrpResultDisclaimer" role="note">
                   <svg class="lucide lucide--22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1293,6 +1290,21 @@
                   </svg>
                 </button>
               </footer>
+            </div>
+            <div id="lrpMatchHowDrawer" class="lrp-how-drawer" hidden aria-hidden="true">
+              <button type="button" class="lrp-how-drawer__scrim" id="lrpMatchHowScrim" aria-label="Close how we calculate your match"></button>
+              <section class="lrp-how-drawer__sheet" role="dialog" aria-modal="true" aria-labelledby="lrpMatchHowTitle">
+                <button type="button" class="lrp-how-drawer__close" id="lrpMatchHowClose" aria-label="Close">
+                  <svg class="lucide lucide--18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="m6 6 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+                <h2 class="lrp-how-drawer__title" id="lrpMatchHowTitle">How we calculate your match score</h2>
+                <p class="lrp-how-drawer__body">
+                  We compared the skin traits from your selfie scan — hydration, barrier, oil, tone and sensitivity markers — with this formula’s key ingredients and finish. The percentage is a prototype estimate, not a medical diagnosis.
+                </p>
+              </section>
             </div>
           </section>
 
@@ -1353,6 +1365,6 @@
     </div>
 
     <script src="data/skincare-catalog.js?v=match-spread-4"></script>
-    <script src="app.js?v=routine-pdp-12" defer></script>
+    <script src="app.js?v=routine-pdp-17" defer></script>
   </body>
 </html>

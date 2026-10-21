@@ -2443,11 +2443,87 @@ body {
   cursor: pointer;
 }
 
-.lrp-match-card__how-body {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--text-secondary);
+.lrp-how-drawer {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.lrp-how-drawer[hidden] {
+  display: none !important;
+}
+
+.lrp-how-drawer__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(3, 3, 3, 0.45);
+  cursor: pointer;
+}
+
+.lrp-how-drawer__sheet {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 24px max(24px, env(safe-area-inset-bottom));
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+  color: #030303;
+  transform: translateY(12px);
+  opacity: 0;
+}
+
+.lrp-how-drawer.is-open .lrp-how-drawer__sheet {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 0.28s var(--ease-out), opacity 0.28s var(--ease-out);
+}
+
+.lrp-how-drawer__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #030303;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lrp-how-drawer__close:active {
+  background: #f3f3f3;
+}
+
+.lrp-how-drawer__title {
+  margin: 0 40px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: #030303;
+}
+
+.lrp-how-drawer__body {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #484848;
 }
 
 .lrp-results__disclaimer {
@@ -2600,7 +2676,7 @@ body {
   font-weight: 500;
 }
 
-.lrp-more-card__cart {
+.lrp-more-card__learn {
   width: 100%;
   height: 42px;
   margin-top: 4px;
@@ -2615,8 +2691,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lrp-more-card__learn:active {
+  opacity: 0.9;
 }
 
 .lrp-results__shop {
