@@ -2128,11 +2128,6 @@ const SKIN_DIAG_QUIZ_STEPS = [
     type: "location",
   },
   {
-    key: "climate",
-    title: "Your climate",
-    type: "climate",
-  },
-  {
     key: "age",
     title: "What is your age?",
     type: "age",
@@ -3352,6 +3347,21 @@ function tokenizeAssistantTextBlock(block) {
   return tokens;
 }
 
+function assistantMessageHasCards(root) {
+  if (!(root instanceof HTMLElement)) return false;
+  return Boolean(
+    root.querySelector(
+      "[data-product-carousel], [data-skin-diag-routine-widget], [data-skin-routine-widget], .product-card, .lrp-card, .skin-routine-hero-card",
+    ),
+  );
+}
+
+/** Keep product cards on screen while the copy under them streams in. */
+function pinThreadToCardMessage(root) {
+  const msg = root.closest(".msg") || root;
+  if (msg instanceof HTMLElement) pinThreadToMessage(msg, 8);
+}
+
 /**
  * Applies a lightweight word-by-word reveal to assistant prose.
  * This preserves inline tags (e.g. <strong>) by only replacing text nodes.
@@ -3360,9 +3370,13 @@ function tokenizeAssistantTextBlock(block) {
  */
 function streamAssistantText(root, opts = {}) {
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+  const hasCards = assistantMessageHasCards(root);
   const maybeScroll = () => {
-    if (!opts.preserveThread) scrollMainToBottom();
+    if (opts.preserveThread) return;
+    if (hasCards) return;
+    scrollMainToBottom();
   };
+  if (hasCards && !opts.preserveThread) pinThreadToCardMessage(root);
 
   const seqRoot = root.querySelector('.where-buy[data-assistant-stream="sequential"]');
   if (seqRoot) {
@@ -3394,11 +3408,11 @@ function streamAssistantText(root, opts = {}) {
       }
       maybeScroll();
     };
-    window.setTimeout(tick, tickMs);
+    window.setTimeout(tick, hasCards ? 280 : tickMs);
     return;
   }
 
-  const textBlocks = root.querySelectorAll(".assistant-text");
+  const textBlocks = root.querySelectorAll(".assistant-text, .model-response");
   for (const block of textBlocks) {
     if (!(block instanceof HTMLElement)) continue;
     if (block.closest('.where-buy[data-assistant-stream="sequential"]')) continue;
@@ -3420,7 +3434,7 @@ function streamAssistantText(root, opts = {}) {
         maybeScroll();
       }
     };
-    window.setTimeout(tick, tickMs);
+    window.setTimeout(tick, hasCards ? 280 : tickMs);
   }
 }
 
@@ -3438,7 +3452,10 @@ function appendAssistantBlock(html, withAnim = true, opts = {}) {
   wrap.querySelectorAll("[data-skin-routine-widget]").forEach((widget) => wireSkinRoutineWidget(/** @type {HTMLElement} */ (widget)));
   if (!hasInlineConvActions) wireAssistantFeedback(wrap);
   if (withAnim) streamAssistantText(wrap, opts);
-  if (!opts.preserveThread) scrollMainToBottom();
+  if (!opts.preserveThread) {
+    if (assistantMessageHasCards(wrap)) pinThreadToCardMessage(wrap);
+    else scrollMainToBottom();
+  }
   return wrap;
 }
 
@@ -8482,19 +8499,11 @@ function animateSkinDiagQuizTransition(direction, afterExit) {
 }
 
 function skinDiagQuizNextIndex(from) {
-  let next = from + 1;
-  if (SKIN_DIAG_QUIZ_STEPS[next]?.key === "climate" && !skinDiagQuizAnswers.location) {
-    next += 1;
-  }
-  return next;
+  return from + 1;
 }
 
 function skinDiagQuizPrevIndex(from) {
-  let prev = from - 1;
-  if (prev >= 0 && SKIN_DIAG_QUIZ_STEPS[prev]?.key === "climate" && !skinDiagQuizAnswers.location) {
-    prev -= 1;
-  }
-  return prev;
+  return from - 1;
 }
 
 function finishSkinDiagPreScanQuiz() {
@@ -8512,8 +8521,7 @@ function syncSkinDiagQuizContinueEnabled() {
   const step = SKIN_DIAG_QUIZ_STEPS[skinDiagQuizStep];
   if (!step || !el.vtoSkinQuizContinue) return;
   let enabled = false;
-  if (step.type === "climate") enabled = true;
-  else if (step.type === "rank") enabled = skinDiagQuizAnswers.priorities.length > 0;
+  if (step.type === "rank") enabled = skinDiagQuizAnswers.priorities.length > 0;
   else if (step.type === "age") enabled = skinDiagQuizAnswers.age != null;
   else if (step.type === "location") enabled = !!skinDiagQuizAnswers.location;
   else {
@@ -8783,58 +8791,6 @@ function renderSkinDiagLocationCustom() {
   requestAnimationFrame(() => input?.focus());
 }
 
-function renderSkinDiagClimateCustom() {
-  const place = escapeHtml(skinDiagQuizAnswers.location || "your area");
-  el.vtoSkinQuizCustom.hidden = false;
-  el.vtoSkinQuizCustom.innerHTML = `
-    <p class="vto-skin-quiz__climate-lead">Your climate can impact your skin in many ways. In ${place}, based on data from the last 30 days, your skin could be exposed to:</p>
-    <div class="vto-skin-quiz__climate-list">
-      <article class="vto-skin-quiz__climate-card">
-        <div class="vto-skin-quiz__climate-kicker">
-          <span class="vto-skin-quiz__climate-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.6v2.2M12 19.2v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.6 12h2.2M19.2 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          </span>
-          UV index
-        </div>
-        <div class="vto-skin-quiz__climate-stats">
-          <strong class="vto-skin-quiz__climate-level vto-skin-quiz__climate-level--high">High</strong>
-          <span class="vto-skin-quiz__climate-value">6</span>
-        </div>
-        <div class="vto-skin-quiz__meter" style="--pos: 54%"><span class="vto-skin-quiz__meter-tick"></span></div>
-        <p class="vto-skin-quiz__climate-blurb">High UV causes immediate sunburn and collagen breakdown, leading to premature aging, wrinkles, sun spots and DNA damage.</p>
-      </article>
-      <article class="vto-skin-quiz__climate-card">
-        <div class="vto-skin-quiz__climate-kicker">
-          <span class="vto-skin-quiz__climate-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M3.5 8h13.2a3.2 3.2 0 1 0-2.3-5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3.5 12.5H18a2.7 2.7 0 1 1 0 5.4H8.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3.5 17.5h4.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          </span>
-          Air pollution
-        </div>
-        <div class="vto-skin-quiz__climate-stats">
-          <strong class="vto-skin-quiz__climate-level vto-skin-quiz__climate-level--low">Very low</strong>
-          <span class="vto-skin-quiz__climate-value">AQI 10</span>
-        </div>
-        <div class="vto-skin-quiz__meter" style="--pos: 6%"><span class="vto-skin-quiz__meter-tick"></span></div>
-        <p class="vto-skin-quiz__climate-blurb">High air pollution causes premature aging, wrinkles, acne, dark spots, inflammation, rashes, dryness, and eczema by creating oxidative stress and damaging the skin barrier.</p>
-      </article>
-      <article class="vto-skin-quiz__climate-card">
-        <div class="vto-skin-quiz__climate-kicker">
-          <span class="vto-skin-quiz__climate-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M10 14.7V5.6a2 2 0 1 1 4 0v9.1a3.5 3.5 0 1 1-4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 17.6v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          </span>
-          Temperature variation
-        </div>
-        <div class="vto-skin-quiz__climate-stats">
-          <strong class="vto-skin-quiz__climate-level vto-skin-quiz__climate-level--mid">Moderate</strong>
-          <span class="vto-skin-quiz__climate-value">30°F</span>
-        </div>
-        <div class="vto-skin-quiz__meter" style="--pos: 38%"><span class="vto-skin-quiz__meter-tick"></span></div>
-        <p class="vto-skin-quiz__climate-blurb">Very high temperatures cause skin to burn, dry out, break out, or itch. High heat produces sweat and can clog pores, while large swings in temperature stress the skin barrier.</p>
-      </article>
-    </div>
-  `;
-}
-
 function renderSkinDiagAgeCustom() {
   const value = skinDiagQuizAnswers.age != null ? String(skinDiagQuizAnswers.age) : "";
   el.vtoSkinQuizCustom.hidden = false;
@@ -8903,7 +8859,6 @@ function renderSkinDiagQuestionnaireStep() {
   if (step.type === "single") renderSkinDiagSingleOptions(step);
   else if (step.type === "rank") renderSkinDiagRankOptions(step);
   else if (step.type === "location") renderSkinDiagLocationCustom();
-  else if (step.type === "climate") renderSkinDiagClimateCustom();
   else if (step.type === "age") renderSkinDiagAgeCustom();
 
   syncSkinDiagQuizContinueEnabled();
@@ -8949,11 +8904,6 @@ function skinDiagQuestionnaireContinue() {
   if (skinDiagQuizAnimating) return;
   const step = SKIN_DIAG_QUIZ_STEPS[skinDiagQuizStep];
   if (!step) return;
-  if (step.type === "climate") {
-    skinDiagQuizAnswers.climateSeen = true;
-    skinDiagQuestionnaireAdvanceFromCurrentStep();
-    return;
-  }
   if (step.type === "rank") {
     if (!skinDiagQuizAnswers.priorities.length) return;
     skinDiagQuestionnaireAdvanceFromCurrentStep();
@@ -8982,8 +8932,7 @@ function skinDiagQuestionnaireSkip() {
   else if (step.type === "location") {
     skinDiagQuizAnswers.location = null;
     skinDiagQuizAnswers.locationSkipped = true;
-  } else if (step.type === "age") skinDiagQuizAnswers.age = null;
-  else if (step.type === "climate") skinDiagQuizAnswers.climateSeen = false;
+  }   else if (step.type === "age") skinDiagQuizAnswers.age = null;
   else skinDiagQuizAnswers[step.key] = null;
   skinDiagQuestionnaireAdvanceFromCurrentStep();
 }
@@ -9712,6 +9661,11 @@ function openLrpOverlay() {
   flow.setAttribute("aria-hidden", "false");
   el.shell?.classList.add("is-lrp-flow-open");
   flow.classList.toggle("lrp-flow--over-vto", lrpScanForSkinDiag);
+  flow.classList.toggle("lrp-flow--skincare", lrpScanForSkinDiag);
+  if (lrpScanForSkinDiag) {
+    flow.classList.remove("lrp-flow--cerave", "lrp-flow--lancome");
+    flow.setAttribute("aria-label", VTO_EXPERIENCE_BRAND_SKIN);
+  }
   syncShellComposerStackVar();
   requestAnimationFrame(() => requestAnimationFrame(() => flow.classList.add("is-open")));
   return true;
@@ -10046,7 +10000,7 @@ function prepareLrpOverlay(p) {
   stopLrpScan();
   closeVtoFlow();
   closeProductDetail();
-  flow.classList.remove("lrp-flow--over-vto");
+  flow.classList.remove("lrp-flow--over-vto", "lrp-flow--skincare");
   matchBrand = productMatchBrand(p);
   syncMatchFlowBrand();
   lrpActiveProduct = p;
@@ -10245,7 +10199,7 @@ function closeLrpFlow() {
   if (!flow || flow.hidden) return;
   if (!flow.classList.contains("is-open") && lrpFlowHideTimer != null) return;
   stopLrpScan();
-  flow.classList.remove("is-open", "lrp-flow--over-vto");
+  flow.classList.remove("is-open", "lrp-flow--over-vto", "lrp-flow--skincare");
   lrpScanForSkinDiag = false;
   lrpFlowHideTimer = window.setTimeout(() => {
     lrpFlowHideTimer = null;

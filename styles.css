@@ -2081,6 +2081,38 @@ body {
   width: auto;
 }
 
+.lrp-cam__skincare-brand {
+  display: none;
+  text-align: center;
+}
+
+.lrp-cam__skincare-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.lrp-cam__skincare-tag {
+  margin: 2px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #fff;
+}
+
+.lrp-flow--skincare .lrp-cam__logo,
+.lrp-flow--skincare .cerave-logo,
+.lrp-flow--skincare .lancome-logo {
+  display: none;
+}
+
+.lrp-flow--skincare .lrp-cam__skincare-brand {
+  display: block;
+}
+
 .lrp-cam__stage {
   position: absolute;
   top: calc(64px + env(safe-area-inset-top));
