@@ -7183,6 +7183,113 @@ function retakeVtoSelfie() {
   requestAnimationFrame(() => el.vtoSelfieTake.focus());
 }
 
+/** Phone-portrait selfie frame (width / height), matching a typical mobile camera. */
+const SELFIE_PORTRAIT_ASPECT = 9 / 16;
+
+function selfieCameraConstraintSets() {
+  return [
+    {
+      audio: false,
+      video: {
+        facingMode: { ideal: "user" },
+        aspectRatio: { ideal: SELFIE_PORTRAIT_ASPECT },
+        width: { ideal: 1080 },
+        height: { ideal: 1920 },
+      },
+    },
+    {
+      audio: false,
+      video: {
+        facingMode: { ideal: "user" },
+        width: { ideal: 720 },
+        height: { ideal: 1280 },
+      },
+    },
+    {
+      audio: false,
+      video: {
+        facingMode: { ideal: "user" },
+        width: { ideal: 720 },
+        height: { ideal: 960 },
+      },
+    },
+    { audio: false, video: { facingMode: { ideal: "user" } } },
+  ];
+}
+
+async function openSelfieCameraStream() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("no-media");
+  }
+  let lastError = /** @type {unknown} */ (null);
+  for (const constraints of selfieCameraConstraintSets()) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      await preferPortraitTrack(stream);
+      return stream;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("camera");
+}
+
+/** @param {MediaStream} stream */
+async function preferPortraitTrack(stream) {
+  const track = stream.getVideoTracks()[0];
+  if (!track?.applyConstraints) return;
+  const settings = track.getSettings?.() || {};
+  if ((settings.height || 0) >= (settings.width || 1)) return;
+  try {
+    await track.applyConstraints({
+      aspectRatio: SELFIE_PORTRAIT_ASPECT,
+      width: { ideal: 1080 },
+      height: { ideal: 1920 },
+    });
+  } catch {
+    /* Some browsers keep a landscape sensor track. Capture still crops to portrait. */
+  }
+}
+
+/** @param {HTMLVideoElement | null} video */
+function syncSelfieVideoObjectFit(video) {
+  if (!video) return;
+  video.classList.toggle("is-landscape-stream", video.videoWidth > video.videoHeight);
+}
+
+/**
+ * Draw a mirrored camera frame cropped to {@link SELFIE_PORTRAIT_ASPECT}.
+ * @param {HTMLVideoElement} video
+ * @param {HTMLCanvasElement} canvas
+ */
+function drawMirroredPortraitFrame(video, canvas) {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return false;
+  let sx = 0;
+  let sy = 0;
+  let sw = vw;
+  let sh = vh;
+  const srcAspect = vw / vh;
+  if (srcAspect > SELFIE_PORTRAIT_ASPECT) {
+    sw = Math.round(vh * SELFIE_PORTRAIT_ASPECT);
+    sx = Math.round((vw - sw) / 2);
+  } else if (srcAspect < SELFIE_PORTRAIT_ASPECT) {
+    sh = Math.round(vw / SELFIE_PORTRAIT_ASPECT);
+    sy = Math.round((vh - sh) / 2);
+  }
+  canvas.width = sw;
+  canvas.height = sh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  ctx.save();
+  ctx.translate(sw, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  ctx.restore();
+  return true;
+}
+
 function waitForSelfieVideoSize() {
   return new Promise((resolve) => {
     const v = el.vtoSelfieVideo;
@@ -7269,22 +7376,11 @@ function startSelfieCaptureSequence(opts = {}) {
 function captureSelfieFrameFromVideo() {
   const video = el.vtoSelfieVideo;
   const canvas = el.vtoSelfieCaptureCanvas;
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  if (!w || !h) {
+  if (!drawMirroredPortraitFrame(video, canvas)) {
     stopVtoCameraStream();
     showVtoSelfieStub();
     return;
   }
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  ctx.save();
-  ctx.translate(w, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, 0, 0, w, h);
-  ctx.restore();
 
   canvas.toBlob(
     (blob) => {
@@ -7332,14 +7428,12 @@ async function startVtoSelfieCamera() {
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
+    const stream = await openSelfieCameraStream();
     vtoCameraStream = stream;
     el.vtoSelfieVideo.srcObject = stream;
     await el.vtoSelfieVideo.play();
     await waitForSelfieVideoSize();
+    syncSelfieVideoObjectFit(el.vtoSelfieVideo);
     el.vtoSelfieGuidePill.textContent = "";
     startSelfieCaptureSequence();
   } catch {
@@ -9639,14 +9733,7 @@ function captureLrpScanFrame(step) {
     void flash.offsetWidth;
     flash.classList.add("is-flash");
   }
-  if (!video || !canvas || !video.videoWidth) return;
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, 0, 0);
+  if (!video || !canvas || !drawMirroredPortraitFrame(video, canvas)) return;
   lrpScanCaptures[step] = canvas.toDataURL("image/jpeg", 0.9);
 }
 
@@ -9761,10 +9848,7 @@ async function startLrpScan() {
     return;
   }
   try {
-    lrpCameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
+    lrpCameraStream = await openSelfieCameraStream();
   } catch {
     if (!isCurrent()) return;
     window.alert("Camera permission was denied or the camera could not be opened.");
@@ -9780,6 +9864,7 @@ async function startLrpScan() {
   if (!el.lrpCameraVideo.videoWidth) {
     await new Promise((r) => el.lrpCameraVideo?.addEventListener("loadeddata", r, { once: true }));
   }
+  syncSelfieVideoObjectFit(el.lrpCameraVideo);
 
   setLrpCameraPill("Getting ready…");
   const landmarker = await Promise.race([ensureLrpFaceLandmarker(), wait(10000).then(() => null)]);

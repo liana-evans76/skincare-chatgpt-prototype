@@ -2035,7 +2035,13 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   transform: scaleX(-1);
+  background: #000;
+}
+
+.lrp-cam__video.is-landscape-stream {
+  object-fit: contain;
 }
 
 .lrp-cam__flash {
@@ -3873,17 +3879,17 @@ textarea {
   -webkit-user-select: none;
 }
 
-/* Real selfie: light zoom + modest upward shift; bg anchor in app.js. */
+/* Real selfie is already a 9:16 portrait capture — keep a light frame, not a tight crop. */
 .vto-tryon__viewport--user-selfie {
-  --vto-tryon-face-scale: 1.32;
-  --vto-tryon-face-translate-y: -14%;
+  --vto-tryon-face-scale: 1.04;
+  --vto-tryon-face-translate-y: -3%;
 }
 
 /* Short screens need more headroom above dock/cards. */
 @media (max-height: 760px) {
   .vto-tryon__viewport--user-selfie {
-    --vto-tryon-face-scale: 1.4;
-    --vto-tryon-face-translate-y: -19%;
+    --vto-tryon-face-scale: 1.06;
+    --vto-tryon-face-translate-y: -5%;
   }
 
   .vto-skin-diag-results__cards-wrap {
@@ -3893,8 +3899,8 @@ textarea {
 
 @media (max-height: 700px) {
   .vto-tryon__viewport--user-selfie {
-    --vto-tryon-face-scale: 1.48;
-    --vto-tryon-face-translate-y: -24%;
+    --vto-tryon-face-scale: 1.08;
+    --vto-tryon-face-translate-y: -6%;
   }
 
   .vto-skin-diag-results__cards-wrap {
@@ -4297,17 +4303,22 @@ textarea {
 }
 
 .vto-selfie-confirm__media-wrap {
-  margin-top: 8px;
+  margin: 8px auto 0;
+  width: min(100%, calc(min(56vh, 520px) * 9 / 16));
+  max-width: 100%;
+  aspect-ratio: 9 / 16;
+  max-height: min(56vh, 520px);
   border-radius: 12px;
   overflow: hidden;
-  background: #f3f3f3;
+  background: #111;
 }
 
 .vto-selfie-confirm__img {
   display: block;
   width: 100%;
-  max-height: min(52vh, 440px);
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .vto-hidden-canvas {
@@ -4592,7 +4603,13 @@ textarea {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   transform: scaleX(-1);
+  background: #000;
+}
+
+.vto-selfie-cam__video.is-landscape-stream {
+  object-fit: contain;
 }
 
 .vto-selfie-cam__dim {
