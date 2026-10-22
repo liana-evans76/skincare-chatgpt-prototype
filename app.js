@@ -8162,13 +8162,11 @@ function skinDiagRoutineProductCardHTML(p, opts = {}) {
   const brandHtml = brand ? `<p class="lrp-card__brand">${escapeHtml(brand)}</p>` : "";
   const stepId = opts.stepId || p.step || "";
   const shopPrimary = opts.showAlts === false;
-  const primary = shopPrimary
-    ? `<button type="button" class="lrp-card__cta lrp-card__cta--shop" data-skin-diag-shop="${escapeAttr(p.id)}" aria-label="Where to buy ${escapeAttr(p.title)}">Where to buy</button>`
-    : `<button type="button" class="lrp-card__cta lrp-card__cta--shop" data-skin-diag-learn="${escapeAttr(p.id)}" data-skin-diag-step="${escapeAttr(stepId)}" aria-label="Learn more about ${escapeAttr(p.title)}">
+  const primary = `<button type="button" class="lrp-card__cta lrp-card__cta--shop" data-skin-diag-learn="${escapeAttr(p.id)}" data-skin-diag-step="${escapeAttr(stepId)}" aria-label="Learn more about ${escapeAttr(p.title)}">
         Learn More
       </button>`;
   const secondary = shopPrimary
-    ? `<button type="button" class="lrp-card__learn" data-skin-diag-learn="${escapeAttr(p.id)}" data-skin-diag-step="${escapeAttr(stepId)}" aria-label="Learn more about ${escapeAttr(p.title)}">Learn More</button>`
+    ? `<button type="button" class="lrp-card__learn" data-skin-diag-shop="${escapeAttr(p.id)}" aria-label="Where to buy ${escapeAttr(p.title)}">Where to buy</button>`
     : opts.stepId && opts.showAlts !== false
       ? `<button type="button" class="lrp-card__learn" data-skin-diag-alts="${escapeAttr(opts.stepId)}" data-skin-diag-alts-for="${escapeAttr(p.id)}" aria-label="See alternative products for ${escapeAttr(p.title)}">Alternative Products</button>`
       : "";
