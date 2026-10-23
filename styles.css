@@ -54,7 +54,11 @@
 html {
   height: 100%;
   height: 100svh;
+  height: 100dvh;
+  height: var(--app-height, 100dvh);
   max-height: 100svh;
+  max-height: 100dvh;
+  max-height: var(--app-height, 100dvh);
   overflow: hidden;
   background: var(--surface);
 }
@@ -63,8 +67,12 @@ body {
   margin: 0;
   height: 100%;
   height: 100svh;
+  height: 100dvh;
+  height: var(--app-height, 100dvh);
   max-height: 100svh;
-  min-height: -webkit-fill-available;
+  max-height: 100dvh;
+  max-height: var(--app-height, 100dvh);
+  min-height: 0;
   overflow: hidden;
   background: var(--surface);
   font-family: var(--font-stack);
@@ -1760,7 +1768,7 @@ body {
 
 .lrp-flow__footer {
   flex-shrink: 0;
-  padding: 16px 24px max(16px, env(safe-area-inset-bottom));
+  padding: clamp(8px, 1.8vh, 16px) 24px clamp(8px, 1.8vh, 16px);
   border-top: 1px solid var(--vto-action-footer-stroke);
   background: var(--vto-action-footer-bg);
 }
@@ -2035,13 +2043,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
   transform: scaleX(-1);
-  background: #000;
-}
-
-.lrp-cam__video.is-landscape-stream {
-  object-fit: contain;
 }
 
 .lrp-cam__flash {
@@ -3072,7 +3074,7 @@ body {
   z-index: 59;
   pointer-events: auto;
   margin: 0;
-  padding: 8px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  padding: 8px max(16px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   text-align: center;
   font-size: 12px;
   line-height: 1.4;
@@ -3349,6 +3351,8 @@ body {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr) auto auto;
   grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .shell.is-new-chat .main {
@@ -3365,6 +3369,55 @@ body {
 
 .shell.is-new-chat .composer-footnote {
   grid-row: 6;
+}
+
+@media (max-height: 720px) {
+  .shell.is-new-chat .entry__prompts {
+    padding: 0 16px 6px;
+    gap: 6px;
+  }
+
+  .composer {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .shell.is-new-chat .composer {
+    padding-bottom: 2px;
+  }
+
+  .composer-footnote {
+    padding-top: 4px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Full-screen flows need the composer docked at the bottom, not centered. */
+.shell.is-new-chat:has(#vtoFlow:not([hidden])) .shell-main,
+.shell.is-new-chat:has(#lrpFlow:not([hidden])) .shell-main,
+.shell.is-new-chat:has(#productDetail:not([hidden])) .shell-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.shell.is-new-chat:has(#vtoFlow:not([hidden])) .main,
+.shell.is-new-chat:has(#lrpFlow:not([hidden])) .main,
+.shell.is-new-chat:has(#productDetail:not([hidden])) .main {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.shell.is-new-chat:has(#vtoFlow:not([hidden])) .composer,
+.shell.is-new-chat:has(#lrpFlow:not([hidden])) .composer,
+.shell.is-new-chat:has(#productDetail:not([hidden])) .composer {
+  grid-row: auto;
+  padding-bottom: 8px;
+}
+
+.shell.is-new-chat:has(#vtoFlow:not([hidden])) .composer-footnote,
+.shell.is-new-chat:has(#lrpFlow:not([hidden])) .composer-footnote,
+.shell.is-new-chat:has(#productDetail:not([hidden])) .composer-footnote {
+  grid-row: auto;
 }
 
 .lucide {
@@ -3879,17 +3932,17 @@ textarea {
   -webkit-user-select: none;
 }
 
-/* Real selfie is already a 9:16 portrait capture — keep a light frame, not a tight crop. */
+/* Real selfie: light zoom + modest upward shift; bg anchor in app.js. */
 .vto-tryon__viewport--user-selfie {
-  --vto-tryon-face-scale: 1.04;
-  --vto-tryon-face-translate-y: -3%;
+  --vto-tryon-face-scale: 1.32;
+  --vto-tryon-face-translate-y: -14%;
 }
 
 /* Short screens need more headroom above dock/cards. */
 @media (max-height: 760px) {
   .vto-tryon__viewport--user-selfie {
-    --vto-tryon-face-scale: 1.06;
-    --vto-tryon-face-translate-y: -5%;
+    --vto-tryon-face-scale: 1.4;
+    --vto-tryon-face-translate-y: -19%;
   }
 
   .vto-skin-diag-results__cards-wrap {
@@ -3899,8 +3952,8 @@ textarea {
 
 @media (max-height: 700px) {
   .vto-tryon__viewport--user-selfie {
-    --vto-tryon-face-scale: 1.08;
-    --vto-tryon-face-translate-y: -6%;
+    --vto-tryon-face-scale: 1.48;
+    --vto-tryon-face-translate-y: -24%;
   }
 
   .vto-skin-diag-results__cards-wrap {
@@ -4303,22 +4356,17 @@ textarea {
 }
 
 .vto-selfie-confirm__media-wrap {
-  margin: 8px auto 0;
-  width: min(100%, calc(min(56vh, 520px) * 9 / 16));
-  max-width: 100%;
-  aspect-ratio: 9 / 16;
-  max-height: min(56vh, 520px);
+  margin-top: 8px;
   border-radius: 12px;
   overflow: hidden;
-  background: #111;
+  background: #f3f3f3;
 }
 
 .vto-selfie-confirm__img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
+  max-height: min(52vh, 440px);
+  object-fit: cover;
 }
 
 .vto-hidden-canvas {
@@ -4603,13 +4651,7 @@ textarea {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
   transform: scaleX(-1);
-  background: #000;
-}
-
-.vto-selfie-cam__video.is-landscape-stream {
-  object-fit: contain;
 }
 
 .vto-selfie-cam__dim {
@@ -5043,10 +5085,10 @@ textarea {
 .vto-mode__footer {
   flex-shrink: 0;
   margin-top: auto;
-  padding: 16px 24px max(16px, env(safe-area-inset-bottom));
+  padding: clamp(8px, 1.8vh, 16px) 24px clamp(8px, 1.8vh, 16px);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: clamp(4px, 1vh, 8px);
   background: var(--vto-action-footer-bg);
   border-top: 1px solid var(--vto-action-footer-stroke);
 }
@@ -5141,8 +5183,8 @@ textarea {
 }
 
 .vto-flow__panel--skin-quiz .vto-mode__title {
-  margin: 12px 0 16px;
-  font-size: 28px;
+  margin: clamp(6px, 1.6vh, 12px) 0 clamp(8px, 2vh, 16px);
+  font-size: clamp(22px, 3.4vh, 28px);
   font-weight: 700;
   letter-spacing: -0.045em;
   line-height: 1.12;
@@ -5166,7 +5208,36 @@ textarea {
 }
 
 .vto-flow__scroll--skin-quiz {
-  padding: 4px 20px 16px;
+  padding: 4px 20px clamp(8px, 1.6vh, 16px);
+}
+
+@media (max-height: 740px) {
+  .vto-flow__panel--skin-quiz .vto-mode__title {
+    margin: 4px 0 8px;
+    font-size: 22px;
+  }
+
+  .vto-skin-quiz__subtitle {
+    margin: -4px 0 8px;
+  }
+
+  .vto-skin-quiz__options {
+    gap: 6px;
+  }
+
+  .vto-skin-quiz__choice {
+    min-height: 40px;
+    padding: 7px 14px 7px 16px;
+  }
+
+  .vto-flow__panel--skin-quiz .vto-mode__footer {
+    padding: 8px 24px;
+    gap: 2px;
+  }
+
+  .vto-flow__panel--skin-quiz .vto-mode__btn--primary {
+    height: 44px;
+  }
 }
 
 .vto-skin-quiz__viewport {
@@ -5296,7 +5367,7 @@ textarea {
 .vto-skin-quiz__options {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: clamp(6px, 1.2vh, 10px);
 }
 
 .vto-skin-quiz__options[hidden],
@@ -5306,8 +5377,8 @@ textarea {
 
 .vto-skin-quiz__choice {
   width: 100%;
-  min-height: 54px;
-  padding: 12px 14px 12px 18px;
+  min-height: clamp(44px, 6.8vh, 54px);
+  padding: clamp(8px, 1.4vh, 12px) 14px clamp(8px, 1.4vh, 12px) 18px;
   box-sizing: border-box;
   border: 1.5px solid #e2e2e2;
   border-radius: 999px;

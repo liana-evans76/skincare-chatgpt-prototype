@@ -2044,6 +2044,9 @@ let skinDiagRankSuppressClick = false;
  */
 let skinDiagQuizAnswers = emptySkinDiagQuizAnswers();
 
+/** Snapshot kept after the questionnaire so overlay close cannot drop selected priorities. */
+let skinDiagCompletedQuizAnswers = /** @type {ReturnType<typeof emptySkinDiagQuizAnswers> | null} */ (null);
+
 function emptySkinDiagQuizAnswers() {
   return {
     routine: null,
@@ -2155,9 +2158,17 @@ function skinDiagConcernById(id) {
   return SKIN_DIAG_CONCERNS.find((concern) => concern.id === id) || null;
 }
 
+function skinDiagActiveQuizAnswers() {
+  return skinDiagCompletedQuizAnswers || skinDiagQuizAnswers;
+}
+
+function skinDiagSelectedPriorities() {
+  return (skinDiagActiveQuizAnswers().priorities || []).filter((id) => skinDiagConcernById(id));
+}
+
 /** Quiz ranks win. With none logged, the scan's priority (dark pigmentation) is what the routine is built around. */
 function skinDiagScoringPriorities() {
-  const picked = skinDiagQuizAnswers.priorities || [];
+  const picked = skinDiagSelectedPriorities();
   return picked.length ? picked : ["pigmentation"];
 }
 
@@ -2218,15 +2229,16 @@ const SKIN_DIAG_CONCERN_COPY = {
 };
 
 /**
- * Mock scan scores for all seven concerns. Quiz ranks float to the top;
- * the shortcut path uses pigmentation, pores, then texture as the lead trio.
+ * Mock scan scores for all seven concerns. Selected quiz priorities stay first
+ * so at least one user-picked concern is always the top result.
+ * Shortcut / skipped priorities keep pigmentation, pores, then texture.
  * @returns {{ id: string, label: string, icon: string, score: number, status: string, statusLabel: string }[]}
  */
 function skinDiagConcernScores() {
   const seen = new Set();
   const order = [];
-  for (const id of skinDiagQuizAnswers.priorities || []) {
-    if (skinDiagConcernById(id) && !seen.has(id)) {
+  for (const id of skinDiagSelectedPriorities()) {
+    if (!seen.has(id)) {
       order.push(id);
       seen.add(id);
     }
@@ -2255,9 +2267,23 @@ function skinDiagConcernScores() {
   });
 }
 
+/** @param {{ id: string, label: string, icon: string, score: number, status: string, statusLabel: string }} row */
+function skinDiagEnsurePriorityFinding(row) {
+  if (row.status === "priority") return row;
+  const score = Math.max(row.score, SKIN_DIAG_MOCK_SCORE_LADDER[0] ?? 88);
+  const band = skinDiagScoreStatus(score);
+  return { ...row, score, status: band.status, statusLabel: band.statusLabel };
+}
+
 /** Top 3 scored concerns for the Your skin card and the analysis accordion. */
 function skinDiagResultFindings() {
-  return skinDiagConcernScores().slice(0, 3);
+  const scores = skinDiagConcernScores();
+  const picked = skinDiagSelectedPriorities();
+  if (!picked.length) return scores.slice(0, 3);
+  const pin = scores.find((row) => row.id === picked[0]) || scores.find((row) => picked.includes(row.id));
+  if (!pin) return scores.slice(0, 3);
+  const rest = scores.filter((row) => row.id !== pin.id);
+  return [skinDiagEnsurePriorityFinding(pin), ...rest].slice(0, 3);
 }
 
 function skinDiagMeasurementFindings() {
@@ -2324,7 +2350,7 @@ const SKIN_DIAG_FAKE_CONCERNS = [
  * @returns {3|4|5}
  */
 function skinDiagRoutineSize() {
-  const r = skinDiagQuizAnswers.routine;
+  const r = skinDiagActiveQuizAnswers().routine;
   if (r === "full") return 5;
   if (r === "complete") return 4;
   return 3;
@@ -2361,18 +2387,20 @@ function resolveSkincareProduct(entry) {
  */
 function getSkinDiagRoutineSteps() {
   const products = SKINCARE_DB.products.map(resolveSkincareProduct).filter(Boolean);
+  const answers = skinDiagActiveQuizAnswers();
   return recommendSkincareRoutine(products, {
-    ...skinDiagQuizAnswers,
+    ...answers,
     priorities: skinDiagScoringPriorities(),
   });
 }
 
 function skinDiagQuizProfile() {
+  const answers = skinDiagActiveQuizAnswers();
   return {
-    skinFeel: skinDiagQuizAnswers.skinFeel,
-    reactivity: skinDiagQuizAnswers.reactivity,
+    skinFeel: answers.skinFeel,
+    reactivity: answers.reactivity,
     priorities: skinDiagScoringPriorities(),
-    age: skinDiagQuizAnswers.age,
+    age: answers.age,
   };
 }
 
@@ -3117,7 +3145,7 @@ function snapshotFlagsForMode(mode) {
       chatAwaitingSkinDiagConfirm,
       chatAwaitingSkinRoutineChoice,
       chatSkinRoutineConcernId,
-      quizAnswers: cloneSkinDiagQuizAnswers(skinDiagQuizAnswers),
+      quizAnswers: cloneSkinDiagQuizAnswers(skinDiagActiveQuizAnswers()),
       composerSelectedApp: composerSelectedApp === "skin_diag" ? "skin_diag" : null,
     };
   }
@@ -3146,6 +3174,9 @@ function applyFlagsForMode(mode, flags) {
     chatSkinRoutineConcernId = typeof flags.chatSkinRoutineConcernId === "string" ? flags.chatSkinRoutineConcernId : null;
     if (flags.quizAnswers && typeof flags.quizAnswers === "object") {
       skinDiagQuizAnswers = cloneSkinDiagQuizAnswers(flags.quizAnswers);
+      if (skinDiagQuizAnswers.priorities.length || skinDiagQuizAnswers.routine) {
+        skinDiagCompletedQuizAnswers = cloneSkinDiagQuizAnswers(skinDiagQuizAnswers);
+      }
     }
     composerSelectedApp = flags.composerSelectedApp === "skin_diag" ? "skin_diag" : composerSelectedApp === "vto" ? null : composerSelectedApp;
     return;
@@ -7183,113 +7214,6 @@ function retakeVtoSelfie() {
   requestAnimationFrame(() => el.vtoSelfieTake.focus());
 }
 
-/** Phone-portrait selfie frame (width / height), matching a typical mobile camera. */
-const SELFIE_PORTRAIT_ASPECT = 9 / 16;
-
-function selfieCameraConstraintSets() {
-  return [
-    {
-      audio: false,
-      video: {
-        facingMode: { ideal: "user" },
-        aspectRatio: { ideal: SELFIE_PORTRAIT_ASPECT },
-        width: { ideal: 1080 },
-        height: { ideal: 1920 },
-      },
-    },
-    {
-      audio: false,
-      video: {
-        facingMode: { ideal: "user" },
-        width: { ideal: 720 },
-        height: { ideal: 1280 },
-      },
-    },
-    {
-      audio: false,
-      video: {
-        facingMode: { ideal: "user" },
-        width: { ideal: 720 },
-        height: { ideal: 960 },
-      },
-    },
-    { audio: false, video: { facingMode: { ideal: "user" } } },
-  ];
-}
-
-async function openSelfieCameraStream() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    throw new Error("no-media");
-  }
-  let lastError = /** @type {unknown} */ (null);
-  for (const constraints of selfieCameraConstraintSets()) {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      await preferPortraitTrack(stream);
-      return stream;
-    } catch (err) {
-      lastError = err;
-    }
-  }
-  throw lastError || new Error("camera");
-}
-
-/** @param {MediaStream} stream */
-async function preferPortraitTrack(stream) {
-  const track = stream.getVideoTracks()[0];
-  if (!track?.applyConstraints) return;
-  const settings = track.getSettings?.() || {};
-  if ((settings.height || 0) >= (settings.width || 1)) return;
-  try {
-    await track.applyConstraints({
-      aspectRatio: SELFIE_PORTRAIT_ASPECT,
-      width: { ideal: 1080 },
-      height: { ideal: 1920 },
-    });
-  } catch {
-    /* Some browsers keep a landscape sensor track. Capture still crops to portrait. */
-  }
-}
-
-/** @param {HTMLVideoElement | null} video */
-function syncSelfieVideoObjectFit(video) {
-  if (!video) return;
-  video.classList.toggle("is-landscape-stream", video.videoWidth > video.videoHeight);
-}
-
-/**
- * Draw a mirrored camera frame cropped to {@link SELFIE_PORTRAIT_ASPECT}.
- * @param {HTMLVideoElement} video
- * @param {HTMLCanvasElement} canvas
- */
-function drawMirroredPortraitFrame(video, canvas) {
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  if (!vw || !vh) return false;
-  let sx = 0;
-  let sy = 0;
-  let sw = vw;
-  let sh = vh;
-  const srcAspect = vw / vh;
-  if (srcAspect > SELFIE_PORTRAIT_ASPECT) {
-    sw = Math.round(vh * SELFIE_PORTRAIT_ASPECT);
-    sx = Math.round((vw - sw) / 2);
-  } else if (srcAspect < SELFIE_PORTRAIT_ASPECT) {
-    sh = Math.round(vw / SELFIE_PORTRAIT_ASPECT);
-    sy = Math.round((vh - sh) / 2);
-  }
-  canvas.width = sw;
-  canvas.height = sh;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
-  ctx.save();
-  ctx.translate(sw, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-  ctx.restore();
-  return true;
-}
-
 function waitForSelfieVideoSize() {
   return new Promise((resolve) => {
     const v = el.vtoSelfieVideo;
@@ -7376,11 +7300,22 @@ function startSelfieCaptureSequence(opts = {}) {
 function captureSelfieFrameFromVideo() {
   const video = el.vtoSelfieVideo;
   const canvas = el.vtoSelfieCaptureCanvas;
-  if (!drawMirroredPortraitFrame(video, canvas)) {
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  if (!w || !h) {
     stopVtoCameraStream();
     showVtoSelfieStub();
     return;
   }
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.save();
+  ctx.translate(w, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0, w, h);
+  ctx.restore();
 
   canvas.toBlob(
     (blob) => {
@@ -7428,12 +7363,14 @@ async function startVtoSelfieCamera() {
   }
 
   try {
-    const stream = await openSelfieCameraStream();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
     vtoCameraStream = stream;
     el.vtoSelfieVideo.srcObject = stream;
     await el.vtoSelfieVideo.play();
     await waitForSelfieVideoSize();
-    syncSelfieVideoObjectFit(el.vtoSelfieVideo);
     el.vtoSelfieGuidePill.textContent = "";
     startSelfieCaptureSequence();
   } catch {
@@ -7488,8 +7425,16 @@ function setVtoComposerChrome(active) {
   requestAnimationFrame(() => syncShellComposerStackVar());
 }
 
+/** Keep the shell inside the visible phone viewport (iOS toolbars / home indicator). */
+function syncAppViewportHeight() {
+  const vv = window.visualViewport;
+  const h = Math.round((vv && vv.height) || window.innerHeight);
+  document.documentElement.style.setProperty("--app-height", `${Math.max(h, 1)}px`);
+}
+
 /** Sets overlay insets on `.shell` so full-screen pages cover the ChatGPT nav and sit above the composer. */
 function syncShellComposerStackVar() {
+  syncAppViewportHeight();
   const shell = el.shell || el.shellMain;
   const root = el.composerRoot;
   if (!shell || !root) return;
@@ -7508,17 +7453,21 @@ function syncShellComposerStackVar() {
 
 let shellComposerStackResizeTimer = /** @type {number | null} */ (null);
 
+function scheduleShellChromeSync() {
+  if (shellComposerStackResizeTimer != null) window.clearTimeout(shellComposerStackResizeTimer);
+  shellComposerStackResizeTimer = window.setTimeout(() => {
+    shellComposerStackResizeTimer = null;
+    syncShellComposerStackVar();
+  }, 50);
+}
+
 function initShellComposerStackObserver() {
   const root = el.composerRoot;
   if (!el.shellMain || !root) return;
   syncShellComposerStackVar();
-  window.addEventListener("resize", () => {
-    if (shellComposerStackResizeTimer != null) window.clearTimeout(shellComposerStackResizeTimer);
-    shellComposerStackResizeTimer = window.setTimeout(() => {
-      shellComposerStackResizeTimer = null;
-      syncShellComposerStackVar();
-    }, 50);
-  });
+  window.addEventListener("resize", scheduleShellChromeSync);
+  window.visualViewport?.addEventListener("resize", scheduleShellChromeSync);
+  window.visualViewport?.addEventListener("scroll", scheduleShellChromeSync);
   const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => syncShellComposerStackVar()) : null;
   ro?.observe(root);
   if (el.composerFootnote) ro?.observe(el.composerFootnote);
@@ -7585,7 +7534,7 @@ function isSkinDiagClimateAnalysisOpen() {
 
 function showSkinDiagClimateAnalysis() {
   hideSkinDiagSkinAnalysis();
-  const place = skinDiagQuizAnswers.location || "[location]";
+  const place = skinDiagActiveQuizAnswers().location || "[location]";
   if (el.vtoSkinDiagClimateLede) {
     el.vtoSkinDiagClimateLede.textContent = `Your climate can impact your [service] in many ways. In ${place}, based on data from the last 30 days, your skin could be exposed to:`;
   }
@@ -7771,7 +7720,7 @@ function skinDiagTopConcernMetricsHTML() {
 }
 
 function skinDiagResultsLeadHTML() {
-  const picked = skinDiagQuizAnswers.priorities || [];
+  const picked = skinDiagSelectedPriorities();
   if (!picked.length) {
     return "The good news first: your wrinkles actually look really well cared for, and firmness is holding up okay. The piece I would be gentlest with is <strong>dark pigmentation</strong>. It is the main thing asking for a little extra love right now, which is very common — especially with <strong>UV running high</strong> and the air on the dry side where you are. None of this is a verdict on your skin. It is just a snapshot of what could use some support.";
   }
@@ -8327,7 +8276,7 @@ function skinDiagAlternativesCopyHTML(step, products, original) {
     texture: "texture",
     pores: "visible pores",
   };
-  const priorities = (skinDiagQuizAnswers.priorities || [])
+  const priorities = skinDiagSelectedPriorities()
     .slice(0, 2)
     .map((id) => priorityLabels[id] || String(id).replace(/-/g, " "));
   const priorityBit = priorities.length
@@ -8542,14 +8491,19 @@ function hideSkinDiagQuestionnairePanel() {
   el.vtoSkinQuestionnairePanel.setAttribute("aria-hidden", "true");
 }
 
-function resetSkinDiagQuestionnaireState() {
+function resetSkinDiagQuestionnaireUi() {
   clearSkinDiagQuizAdvanceTimer();
   skinDiagQuizAnimGen += 1;
   skinDiagQuizAnimating = false;
   skinDiagRankSuppressClick = false;
   skinDiagQuizStep = 0;
-  skinDiagQuizAnswers = emptySkinDiagQuizAnswers();
   el.vtoSkinQuizSlide?.classList.remove("is-exit-next", "is-exit-prev", "is-enter-next", "is-enter-prev");
+}
+
+function resetSkinDiagQuestionnaireState() {
+  resetSkinDiagQuestionnaireUi();
+  skinDiagQuizAnswers = emptySkinDiagQuizAnswers();
+  skinDiagCompletedQuizAnswers = null;
 }
 
 function beginSkinDiagPreScanQuiz() {
@@ -8642,10 +8596,7 @@ function skinDiagQuizPrevIndex(from) {
 function finishSkinDiagPreScanQuiz() {
   clearSkinDiagQuizAdvanceTimer();
   skinDiagPreScanQuizDone = true;
-  window.__lastSkinDiagQuizAnswers = {
-    ...skinDiagQuizAnswers,
-    priorities: [...skinDiagQuizAnswers.priorities],
-  };
+  skinDiagCompletedQuizAnswers = cloneSkinDiagQuizAnswers(skinDiagQuizAnswers);
   hideSkinDiagQuestionnairePanel();
   showSkinDiagSelfieEntry();
 }
@@ -9133,7 +9084,7 @@ function resetVtoFlowPanels() {
   hideSkinDiagLoadingPanel();
   hideSkinDiagResultsPanel();
   hideSkinDiagQuestionnairePanel();
-  resetSkinDiagQuestionnaireState();
+  resetSkinDiagQuestionnaireUi();
   teardownTryOnFaceLandmarker();
   tryOnResizeObserver?.disconnect();
   tryOnResizeObserver = null;
@@ -9731,7 +9682,14 @@ function captureLrpScanFrame(step) {
     void flash.offsetWidth;
     flash.classList.add("is-flash");
   }
-  if (!video || !canvas || !drawMirroredPortraitFrame(video, canvas)) return;
+  if (!video || !canvas || !video.videoWidth) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0);
   lrpScanCaptures[step] = canvas.toDataURL("image/jpeg", 0.9);
 }
 
@@ -9846,7 +9804,10 @@ async function startLrpScan() {
     return;
   }
   try {
-    lrpCameraStream = await openSelfieCameraStream();
+    lrpCameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
   } catch {
     if (!isCurrent()) return;
     window.alert("Camera permission was denied or the camera could not be opened.");
@@ -9862,7 +9823,6 @@ async function startLrpScan() {
   if (!el.lrpCameraVideo.videoWidth) {
     await new Promise((r) => el.lrpCameraVideo?.addEventListener("loadeddata", r, { once: true }));
   }
-  syncSelfieVideoObjectFit(el.lrpCameraVideo);
 
   setLrpCameraPill("Getting ready…");
   const landmarker = await Promise.race([ensureLrpFaceLandmarker(), wait(10000).then(() => null)]);
