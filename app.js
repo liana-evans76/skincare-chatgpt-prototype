@@ -3287,13 +3287,13 @@ function switchChatModeIfNeeded(nextMode) {
 function startSkinDiagChat() {
   if (chatMode !== "skin_diag") captureChatThread(chatMode);
   applyChatThread("skin_diag", { fresh: true });
-  requestAnimationFrame(() => el.input?.focus());
+  requestAnimationFrame(() => focusComposerInput());
 }
 
 function switchToMakeupChat() {
   if (chatMode !== "makeup") captureChatThread(chatMode);
   applyChatThread("makeup", { fresh: true });
-  requestAnimationFrame(() => el.input?.focus());
+  requestAnimationFrame(() => focusComposerInput());
 }
 
 function launchSkinDiagAfterConfirm() {
@@ -5934,11 +5934,15 @@ function syncComposerMentionUI() {
 }
 
 function autosizeComposer() {
-  el.input.style.height = "0px";
-  el.input.style.height = `${Math.min(el.input.scrollHeight, 120)}px`;
-  if (el.composerHighlight) el.composerHighlight.style.height = el.input.style.height;
+  const input = el.input;
+  if (!input) return;
+  const prev = input.style.height;
+  input.style.height = "auto";
+  const next = `${Math.min(Math.max(input.scrollHeight, 24), 120)}px`;
+  input.style.height = next;
+  if (el.composerHighlight) el.composerHighlight.style.height = next;
   syncComposerMentionUI();
-  requestAnimationFrame(() => syncShellComposerStackVar());
+  if (prev !== next) requestAnimationFrame(() => syncShellComposerStackVar());
 }
 
 function updateComposerTextState() {
@@ -6001,6 +6005,10 @@ function refreshComposerActionState() {
 }
 
 function initComposer() {
+  el.input.addEventListener("focus", () => {
+    window.scrollTo(0, 0);
+    syncAppViewportHeight();
+  });
   el.input.addEventListener("input", () => {
     autosizeComposer();
     updateComposerTextState();
@@ -6058,7 +6066,7 @@ function initComposer() {
     const item = e.target.closest("[data-mention-plugin]");
     if (!item) return;
     completeMatchMention(item.getAttribute("data-mention-plugin") || undefined);
-    requestAnimationFrame(() => el.input?.focus());
+    requestAnimationFrame(() => focusComposerInput());
   });
 
   el.composerPlus?.addEventListener("click", () => openComposerAppMenu());
@@ -6067,24 +6075,24 @@ function initComposer() {
     composerSelectedApp = "vto";
     syncComposerAppPill();
     closeComposerAppMenu();
-    requestAnimationFrame(() => el.input?.focus());
+    requestAnimationFrame(() => focusComposerInput());
   });
   el.composerAppMenuSkinDiag?.addEventListener("click", () => {
     composerSelectedApp = "skin_diag";
     syncComposerAppPill();
     closeComposerAppMenu();
-    requestAnimationFrame(() => el.input?.focus());
+    requestAnimationFrame(() => focusComposerInput());
   });
   el.composerAppPillClear?.addEventListener("click", () => {
     composerSelectedApp = null;
     syncComposerAppPill();
-    requestAnimationFrame(() => el.input?.focus());
+    requestAnimationFrame(() => focusComposerInput());
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || el.composerAppMenu?.hidden !== false) return;
     e.preventDefault();
     closeComposerAppMenu();
-    requestAnimationFrame(() => el.input?.focus());
+    requestAnimationFrame(() => focusComposerInput());
   });
   document.addEventListener("mousedown", (e) => {
     if (!isComposerMentionMenuOpen()) return;
@@ -7066,7 +7074,7 @@ function initProductDetail() {
       flow = "idle";
       updateComposerTextState();
       requestAnimationFrame(() => {
-        el.input?.focus();
+        focusComposerInput();
       });
     })();
   });
@@ -7425,11 +7433,24 @@ function setVtoComposerChrome(active) {
   requestAnimationFrame(() => syncShellComposerStackVar());
 }
 
-/** Keep the shell inside the visible phone viewport (iOS toolbars / home indicator). */
+function focusComposerInput() {
+  el.input?.focus({ preventScroll: true });
+  window.scrollTo(0, 0);
+  syncAppViewportHeight();
+}
+
+/** Glue the shell to the visible viewport so the iOS keyboard cannot pan chat upward. */
 function syncAppViewportHeight() {
   const vv = window.visualViewport;
-  const h = Math.round((vv && vv.height) || window.innerHeight);
-  document.documentElement.style.setProperty("--app-height", `${Math.max(h, 1)}px`);
+  const width = Math.round(vv?.width ?? window.innerWidth);
+  const height = Math.round(vv?.height ?? window.innerHeight);
+  const offsetTop = Math.round(vv?.offsetTop ?? 0);
+  const offsetLeft = Math.round(vv?.offsetLeft ?? 0);
+  const root = document.documentElement;
+  root.style.setProperty("--app-width", `${Math.max(width, 1)}px`);
+  root.style.setProperty("--app-height", `${Math.max(height, 1)}px`);
+  root.style.setProperty("--app-offset-top", `${offsetTop}px`);
+  root.style.setProperty("--app-offset-left", `${offsetLeft}px`);
 }
 
 /** Sets overlay insets on `.shell` so full-screen pages cover the ChatGPT nav and sit above the composer. */
@@ -7466,8 +7487,12 @@ function initShellComposerStackObserver() {
   if (!el.shellMain || !root) return;
   syncShellComposerStackVar();
   window.addEventListener("resize", scheduleShellChromeSync);
-  window.visualViewport?.addEventListener("resize", scheduleShellChromeSync);
-  window.visualViewport?.addEventListener("scroll", scheduleShellChromeSync);
+  const onVisualViewport = () => {
+    syncAppViewportHeight();
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+  };
+  window.visualViewport?.addEventListener("resize", onVisualViewport);
+  window.visualViewport?.addEventListener("scroll", onVisualViewport);
   const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => syncShellComposerStackVar()) : null;
   ro?.observe(root);
   if (el.composerFootnote) ro?.observe(el.composerFootnote);
@@ -7691,7 +7716,7 @@ function finishSkinDiagFlowToChat(opts = {}) {
   hideSkinDiagResultsPanel();
   closeVtoFlow();
   enterChatView();
-  if (opts.focusComposer !== false) requestAnimationFrame(() => el.input?.focus());
+  if (opts.focusComposer !== false) requestAnimationFrame(() => focusComposerInput());
 }
 
 function skinDiagInsightCardChevronHTML() {
@@ -8425,7 +8450,7 @@ async function showSkinDiagResultsAfterLoad(imageUrl) {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       if (nextMsg instanceof HTMLElement) pinThreadToMessage(nextMsg, 108);
-      el.input?.focus({ preventScroll: true });
+      focusComposerInput();
     });
   });
 }
@@ -10277,7 +10302,7 @@ async function startMatchShopFlow(p) {
   flow = "idle";
   updateComposerTextState();
   requestAnimationFrame(() => {
-    el.input?.focus();
+    focusComposerInput();
   });
 }
 
