@@ -2166,10 +2166,25 @@ function skinDiagSelectedPriorities() {
   return (skinDiagActiveQuizAnswers().priorities || []).filter((id) => skinDiagConcernById(id));
 }
 
+/** Wrinkles can still appear, but never as the headline concern (testers skew under 50). */
+const SKIN_DIAG_NEVER_TOP_CONCERN = "wrinkles";
+
+/**
+ * Quiz ranks win, except wrinkles is never first. If wrinkles was the only pick,
+ * fall back to the scan default (dark pigmentation) and keep wrinkles second.
+ */
+function skinDiagPriorityIdsForResults() {
+  const picked = skinDiagSelectedPriorities();
+  if (!picked.length) return ["pigmentation"];
+  if (picked[0] !== SKIN_DIAG_NEVER_TOP_CONCERN) return picked;
+  const rest = picked.slice(1);
+  if (!rest.length) return ["pigmentation", SKIN_DIAG_NEVER_TOP_CONCERN];
+  return [rest[0], SKIN_DIAG_NEVER_TOP_CONCERN, ...rest.slice(1)];
+}
+
 /** Quiz ranks win. With none logged, the scan's priority (dark pigmentation) is what the routine is built around. */
 function skinDiagScoringPriorities() {
-  const picked = skinDiagSelectedPriorities();
-  return picked.length ? picked : ["pigmentation"];
+  return skinDiagPriorityIdsForResults();
 }
 
 /** Higher score = more of a concern. Over 80 is Priority, under 50 is Great, anything else is Okay. */
@@ -2230,14 +2245,14 @@ const SKIN_DIAG_CONCERN_COPY = {
 
 /**
  * Mock scan scores for all seven concerns. Selected quiz priorities stay first
- * so at least one user-picked concern is always the top result.
- * Shortcut / skipped priorities keep pigmentation, pores, then texture.
+ * so at least one user-picked concern is always the top result — except wrinkles,
+ * which is never first. Shortcut / skipped priorities keep pigmentation, pores, then texture.
  * @returns {{ id: string, label: string, icon: string, score: number, status: string, statusLabel: string }[]}
  */
 function skinDiagConcernScores() {
   const seen = new Set();
   const order = [];
-  for (const id of skinDiagSelectedPriorities()) {
+  for (const id of skinDiagPriorityIdsForResults()) {
     if (!seen.has(id)) {
       order.push(id);
       seen.add(id);
@@ -2278,10 +2293,14 @@ function skinDiagEnsurePriorityFinding(row) {
 /** Top 3 scored concerns for the Your skin card and the analysis accordion. */
 function skinDiagResultFindings() {
   const scores = skinDiagConcernScores();
-  const picked = skinDiagSelectedPriorities();
-  if (!picked.length) return scores.slice(0, 3);
-  const pin = scores.find((row) => row.id === picked[0]) || scores.find((row) => picked.includes(row.id));
-  if (!pin) return scores.slice(0, 3);
+  const pinId = skinDiagPriorityIdsForResults()[0];
+  const pin =
+    scores.find((row) => row.id === pinId) ||
+    scores.find((row) => row.id !== SKIN_DIAG_NEVER_TOP_CONCERN) ||
+    scores[0];
+  if (!pin || pin.id === SKIN_DIAG_NEVER_TOP_CONCERN) {
+    return scores.filter((row) => row.id !== SKIN_DIAG_NEVER_TOP_CONCERN).slice(0, 3);
+  }
   const rest = scores.filter((row) => row.id !== pin.id);
   return [skinDiagEnsurePriorityFinding(pin), ...rest].slice(0, 3);
 }
@@ -7745,7 +7764,7 @@ function skinDiagTopConcernMetricsHTML() {
 }
 
 function skinDiagResultsLeadHTML() {
-  const picked = skinDiagSelectedPriorities();
+  const picked = skinDiagSelectedPriorities().filter((id) => id !== SKIN_DIAG_NEVER_TOP_CONCERN);
   if (!picked.length) {
     return "The good news first: your wrinkles actually look really well cared for, and firmness is holding up okay. The piece I would be gentlest with is <strong>dark pigmentation</strong>. It is the main thing asking for a little extra love right now, which is very common — especially with <strong>UV running high</strong> and the air on the dry side where you are. None of this is a verdict on your skin. It is just a snapshot of what could use some support.";
   }
@@ -8301,7 +8320,7 @@ function skinDiagAlternativesCopyHTML(step, products, original) {
     texture: "texture",
     pores: "visible pores",
   };
-  const priorities = skinDiagSelectedPriorities()
+  const priorities = skinDiagScoringPriorities()
     .slice(0, 2)
     .map((id) => priorityLabels[id] || String(id).replace(/-/g, " "));
   const priorityBit = priorities.length
